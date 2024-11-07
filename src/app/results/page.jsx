@@ -1,31 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function Results() {
+function ResultsContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [results, setResults] = useState(null);
   const sitemapUrls = JSON.parse(searchParams.get("sitemapUrls") || "[]");
 
-  const fetchData = async () => {
-    const response = await fetch("/api/check404", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sitemapUrls }),
-    });
-
-    const data = await response.json();
-    setResults(data);
-  };
+  const [results, setResults] = useState(null);
 
   useEffect(() => {
-    if (sitemapUrls.length > 0) fetchData();
-  }, []);
+    async function fetchData() {
+      if (sitemapUrls.length === 0) return;
 
-  if (!results) return <p>Loading...</p>;
+      const response = await fetch("/api/check404", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitemapUrls }),
+      });
+
+      const data = await response.json();
+      setResults(data);
+    }
+
+    fetchData();
+  }, [sitemapUrls]);
+
+  if (!results) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <div>
@@ -51,5 +54,13 @@ export default function Results() {
         </ul>
       </section>
     </div>
+  );
+}
+
+export default function Results() {
+  return (
+    <Suspense fallback={<p>Loading results...</p>}>
+      <ResultsContent />
+    </Suspense>
   );
 }
