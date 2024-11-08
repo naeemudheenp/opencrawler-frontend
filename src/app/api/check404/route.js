@@ -1,61 +1,71 @@
-
+// app/api/crawl/route.js
 
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
-import axios from 'axios';
-import xml2js from 'xml2js';
 
-async function fetchSitemapUrls(sitemapUrls) {
-  let allUrls = [];
-  async function check404(pages) {
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-    const results = { notFound: [], allPages: [] };
-
-    for (const url of pages) {
-      try {
-        const response = await page.goto(url, { waitUntil: 'networkidle2' });
-        console.log("checking..", url);
-
-        results.allPages.push(url);
-
-        if (response.status() === 404) {
-          results.notFound.push(url);
-        }
-      } catch (error) {
-        console.log(`Error accessing page: ${url}`, error);
-      }
-    }
-
-    await browser.close();
-    return results;
-  }
-
-  for (const sitemapUrl of sitemapUrls) {
-    try {
-      const response = await axios.get(sitemapUrl);
-      const parsedData = await xml2js.parseStringPromise(response.data);
-      const urls = parsedData.urlset.url.map(urlObj => urlObj.loc[0]);
-      allUrls = allUrls.concat(urls);
-    } catch (error) {
-      console.error(`Error fetching sitemap at ${sitemapUrl}: ${error.message}`);
-    }
-  }
-  return check404(allUrls)
-
+// Helper function to extract all internal links on a page
+async function getInternalLinks(page) {
+  const links = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('a'))
+      .map(link => link.href)
+      .filter(href => href.startsWith(window.location.origin))
+  );
+  return [...new Set(links)]; // Remove duplicates
 }
 
+// Function to recursively crawl through all links
+async function crawl(url, browser, visited = new Set(), results = { notFound: [], allPages: [] }) {
+  if (visited.has(url)) return; // Avoid revisiting pages
+  visited.add(url);
+
+  try {
+    const page = await browser.newPage();
+    console.log("checking...", url);
+    const response = await page.goto(url, { waitUntil: 'networkidle2', timeout: 5000 });
+
+    results.allPages.push(url);
+
+    if (response.status() === 404) {
+      results.notFound.push(url);
+    }
+
+    console.log("checking...", url, response.status());
 
 
+    const links = await getInternalLinks(page);
+    await page.close();
+
+    // Recursively crawl each internal link
+    for (const link of links) {
+      await crawl(link, browser, visited, results);
+    }
+  } catch (error) {
+    console.log(`Error accessing page: ${url}`, error);
+  }
+}
+
+// API handler
 export async function POST(request) {
   const { sitemapUrls } = await request.json();
+  const startUrl = sitemapUrls
 
-  if (!sitemapUrls || !Array.isArray(sitemapUrls)) {
-    return NextResponse.json({ error: 'Invalid input, sitemapUrls must be an array' }, { status: 400 });
+  console.log(startUrl, "startUrlsumo");
+
+
+  if (!startUrl) {
+    return NextResponse.json({ error: 'Please provide a start URL' }, { status: 400 });
   }
 
-  const results = await fetchSitemapUrls(sitemapUrls);
+  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const results = { notFound: [], allPages: [] };
 
+  try {
+    await crawl(startUrl, browser);
+  } catch (error) {
+    console.error('Error while crawling:', error);
+  } finally {
+    await browser.close();
+  }
 
   return NextResponse.json(results, { status: 200 });
 }
