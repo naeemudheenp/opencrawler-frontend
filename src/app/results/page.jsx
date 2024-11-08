@@ -24,7 +24,7 @@ function ResultsContent() {
     }
 
     fetchData();
-  }, [sitemapUrls]);
+  }, []);
 
   if (!results) {
     return <p>Loading...</p>;
