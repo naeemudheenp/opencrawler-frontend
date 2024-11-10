@@ -1,63 +1,98 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 
-function ResultsContent() {
-  const searchParams = useSearchParams();
-  const sitemapUrls = searchParams.get("startUrl") || "[]";
+export default function ClientSideCrawler() {
+  const [startUrl, setStartUrl] = useState("");
+  const [results, setResults] = useState({ notFound: [], allPages: [] });
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [isCrawling, setIsCrawling] = useState(false);
 
-  const [results, setResults] = useState(null);
-  async function fetchData() {
-    const response = await fetch("/api/check404", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sitemapUrls }),
-    });
+  const crawlSite = async (initialUrl) => {
+    setIsCrawling(true);
+    const visited = new Set();
+    const queue = [initialUrl];
+    const domain = new URL(initialUrl).origin;
 
-    const data = await response.json();
-    setResults(data);
-  }
+    const crawlPage = async (url) => {
+      try {
+        const response = await fetch(url);
+        setCurrentUrl(url);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+        // Record status
+        if (response.status === 404) {
+          setResults((prev) => ({
+            ...prev,
+            notFound: [...prev.notFound, url],
+          }));
+        }
 
-  if (!results) {
-    return <p>Loading...</p>;
-  }
+        setResults((prev) => ({
+          ...prev,
+          allPages: [...prev.allPages, url],
+        }));
+
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+
+        // Extract and filter links to the same domain
+        const links = Array.from(doc.querySelectorAll("a"))
+          .map((link) => link.href)
+          .filter((href) => href.startsWith(domain));
+
+        // Add new links to the queue if they haven't been visited
+        for (const link of links) {
+          if (!visited.has(link)) {
+            queue.push(link);
+            visited.add(link);
+          }
+        }
+      } catch (error) {
+        console.error(`Error accessing page: ${url}`, error);
+      }
+    };
+
+    while (queue.length > 0) {
+      const url = queue.shift();
+      await crawlPage(url);
+    }
+
+    setIsCrawling(false);
+  };
+
+  const startCrawl = () => {
+    setResults({ notFound: [], allPages: [] });
+    setCurrentUrl("");
+    crawlSite(startUrl);
+  };
 
   return (
     <div>
-      <h1>404 Checker Results</h1>
+      <h1>Client-Side 404 Crawler</h1>
+      <input
+        type="text"
+        value={startUrl}
+        onChange={(e) => setStartUrl(e.target.value)}
+        placeholder="Enter start URL"
+      />
+      <button onClick={startCrawl} disabled={isCrawling}>
+        {isCrawling ? "Crawling..." : "Start Crawling"}
+      </button>
 
-      <section>
-        <h2>Pages with 404 Errors</h2>
-        <ul>
-          {results?.notFound?.length > 0 ? (
-            results.notFound.map((url, index) => <li key={index}>{url}</li>)
-          ) : (
-            <p>No 404 errors found!</p>
-          )}
-        </ul>
-      </section>
-
-      <section>
-        <h2>All Scanned Pages</h2>
-        <ul>
-          {results?.allPages?.map((url, index) => (
-            <li key={index}>{url}</li>
-          ))}
-        </ul>
-      </section>
+      <h2>Currently Crawling: {currentUrl}</h2>
+      <h3>404 Pages:</h3>
+      <ul>
+        {results.notFound.map((url) => (
+          <li key={url}>{url}</li>
+        ))}
+      </ul>
+      <h3>All Pages:</h3>
+      <ul>
+        {results.allPages.map((url) => (
+          <li key={url}>{url}</li>
+        ))}
+      </ul>
     </div>
-  );
-}
-
-export default function Results() {
-  return (
-    <Suspense fallback={<p>Loading results...</p>}>
-      <ResultsContent />
-    </Suspense>
   );
 }
