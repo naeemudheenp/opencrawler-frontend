@@ -73,7 +73,7 @@ export default function ClientSideCrawler() {
           <h1 className=" font-bold text-3xl text-black flex items-center gap-2">
             openCrawler
             <a
-              href="https://github.com/naeemudheenp/website-404-checker"
+              href="https://github.com/naeemudheenp/OpenCrawler"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground  transition-colors"
