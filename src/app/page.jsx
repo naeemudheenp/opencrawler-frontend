@@ -20,7 +20,11 @@ export default function ClientSideCrawler() {
     const domain = new URL(initialUrl).origin;
 
     const crawlPage = async (url) => {
-      const response = await fetch(url);
+      try {
+        const response = await fetch(url);
+      } catch (error) {
+        console.log("error");
+      }
       setCurrentUrl(url);
 
       // Record status
@@ -108,7 +112,7 @@ export default function ClientSideCrawler() {
         >
           <h2 className=" flex gap-2 items-center justify-between">
             {!resultReady && (
-              <div className=" flex gap-2 justify-center items-center  w-[50%] flex-nowrap">
+              <div className=" flex gap-2  items-center  xl:w-[50%] flex-nowrap">
                 Currently Crawling: {currentUrl || "example.com"}
                 <div className=" aspect-auto rounded-full p-2 size-2 bg-gradient-to-r from-black/80 to-black/40 animate-spin"></div>
               </div>
