@@ -3,6 +3,23 @@
 import React, { useState } from "react";
 import { Github } from "lucide-react";
 
+function isValidURL(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function fetchUrl(url) {
+  try {
+    return await fetch(url);
+  } catch (error) {
+    return false;
+  }
+}
+
 export default function ClientSideCrawler() {
   const [startUrl, setStartUrl] = useState("");
   const [results, setResults] = useState({
@@ -14,6 +31,10 @@ export default function ClientSideCrawler() {
   const [resultReady, setIsResultReady] = useState(false);
 
   const crawlSite = async (initialUrl) => {
+    if (!isValidURL(initialUrl)) {
+      alert("Invalid url");
+      return;
+    }
     try {
       setIsCrawling(true);
       const visited = new Set();
@@ -21,37 +42,38 @@ export default function ClientSideCrawler() {
       const domain = new URL(initialUrl).origin;
 
       const crawlPage = async (url) => {
-        const response = await fetch(url);
+        const response = await fetchUrl(url);
+        if (response) {
+          setCurrentUrl(url);
 
-        setCurrentUrl(url);
+          // Record status
+          if (response.status === 404) {
+            setResults((prev) => ({
+              ...prev,
+              notFound: [...prev.notFound, url],
+            }));
+          }
 
-        // Record status
-        if (response.status === 404) {
           setResults((prev) => ({
             ...prev,
-            notFound: [...prev.notFound, url],
+            allPages: [...prev.allPages, url],
           }));
-        }
 
-        setResults((prev) => ({
-          ...prev,
-          allPages: [...prev.allPages, url],
-        }));
+          const text = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, "text/html");
 
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
+          // Extract and filter links to the same domain
+          const links = Array.from(doc.querySelectorAll("a"))
+            .map((link) => link.href)
+            .filter((href) => href.startsWith(domain));
 
-        // Extract and filter links to the same domain
-        const links = Array.from(doc.querySelectorAll("a"))
-          .map((link) => link.href)
-          .filter((href) => href.startsWith(domain));
-
-        // Add new links to the queue if they haven't been visited
-        for (const link of links) {
-          if (!visited.has(link)) {
-            queue.push(link);
-            visited.add(link);
+          // Add new links to the queue if they haven't been visited
+          for (const link of links) {
+            if (!visited.has(link)) {
+              queue.push(link);
+              visited.add(link);
+            }
           }
         }
       };
@@ -61,7 +83,7 @@ export default function ClientSideCrawler() {
         await crawlPage(url);
       }
     } catch (error) {
-      alert("Unable to crawl.Make sure that internet is available.");
+      alert("Unable to crawl.Make sure that internet is available.", error);
     }
   };
 
@@ -91,7 +113,7 @@ export default function ClientSideCrawler() {
         </div>
         <div className=" flex gap-2 max-md:flex-col">
           <input
-            type="text"
+            type="url"
             value={startUrl}
             onChange={(e) => setStartUrl(e.target.value)}
             placeholder="https://example.com"
@@ -133,9 +155,11 @@ export default function ClientSideCrawler() {
               {results.allPages.map((url) => (
                 <li
                   key={url}
-                  className=" flex gap-3  items-center hover:bg-gray-200 transition-all px-2 rounded-md"
+                  className=" flex gap-3   items-center hover:bg-gray-200 transition-all px-2 rounded-md"
                 >
-                  <a href={url}>{url}</a>
+                  <a target="_blank" className="hover:underline" href={url}>
+                    {url}
+                  </a>
                   {results.notFound.includes(url) ? (
                     <div className=" text-white rounded size-4 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
                       404
