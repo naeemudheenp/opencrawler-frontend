@@ -82,6 +82,8 @@ export default function ClientSideCrawler() {
         const url = queue.shift();
         await crawlPage(url);
       }
+      setCurrentUrl("Crawl completed");
+      setIsCrawling(false);
     } catch (error) {
       alert("Unable to crawl.Make sure that internet is available.", error);
     }
@@ -108,6 +110,9 @@ export default function ClientSideCrawler() {
             >
               <Github className="h-6 w-6" />
             </a>
+            <span className=" bg-black text-white p-1 px-2  rounded-lg text-sm">
+              Beta
+            </span>
           </h1>
           <p>Check for 404 pages thorught the website.</p>
         </div>
