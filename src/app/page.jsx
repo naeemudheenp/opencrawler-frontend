@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Github } from "lucide-react";
+import { Github, Network } from "lucide-react";
 
 function isValidURL(url) {
   try {
@@ -25,12 +25,16 @@ export default function ClientSideCrawler() {
   const [results, setResults] = useState({
     notFound: [],
     allPages: [],
+    parentUrls: [],
   });
   const [currentUrl, setCurrentUrl] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
   const [resultReady, setIsResultReady] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const crawlSite = async (initialUrl) => {
+    console.log(initialUrl, "initialUrl");
+
     if (!isValidURL(initialUrl)) {
       alert("Invalid url");
       return;
@@ -39,10 +43,12 @@ export default function ClientSideCrawler() {
       setIsCrawling(true);
       const visited = new Set();
       const queue = [initialUrl];
+
       const domain = new URL(initialUrl).origin;
 
-      const crawlPage = async (url) => {
+      const crawlPage = async (url, parentUrl) => {
         const response = await fetchUrl(url);
+
         if (response) {
           setCurrentUrl(url);
 
@@ -50,14 +56,15 @@ export default function ClientSideCrawler() {
           if (response.status === 404) {
             setResults((prev) => ({
               ...prev,
-              notFound: [...prev.notFound, url],
+              notFound: [
+                ...prev.notFound,
+                {
+                  url: url,
+                  parentUrl: parentUrl,
+                },
+              ],
             }));
           }
-
-          setResults((prev) => ({
-            ...prev,
-            allPages: [...prev.allPages, url],
-          }));
 
           const text = await response.text();
           const parser = new DOMParser();
@@ -72,6 +79,17 @@ export default function ClientSideCrawler() {
           for (const link of links) {
             if (!visited.has(link)) {
               queue.push(link);
+              setResults((prev) => ({
+                ...prev,
+                allPages: [
+                  ...prev.allPages,
+                  {
+                    url: link,
+                    parentUrl: url,
+                  },
+                ],
+              }));
+
               visited.add(link);
             }
           }
@@ -90,13 +108,13 @@ export default function ClientSideCrawler() {
   };
 
   const startCrawl = () => {
-    setResults({ notFound: [], allPages: [] });
+    setResults({ notFound: [], allPages: [], parentUrls: [] });
     setCurrentUrl("");
-    crawlSite(startUrl);
+    crawlSite(startUrl, startUrl);
   };
 
   return (
-    <section className=" xl:px-24 container bg-white xl:pt-8 flex justify-center items-center w-full h-full text-slate-400 flex-col gap-3">
+    <section className=" xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full text-slate-400 flex-col gap-3">
       <div className=" w-full border rounded-md p-6 flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <h1 className=" font-bold text-3xl text-black flex items-center gap-2">
@@ -155,23 +173,68 @@ export default function ClientSideCrawler() {
           </h2>
 
           <div className=" border h-auto p-3 my-3 rounded-md">
-            <h3 className=" mb-2">Discovered links</h3>
-            <ul className="max-h-[220px]  overflow-scroll flex flex-col">
+            <div className="flex justify-between px-2">
+              {" "}
+              <h3 className=" mb-2">Discovered links</h3>
+              <div className="flex gap-2">
+                <h3 className=" mb-2">Parent link</h3>
+                <h3 className=" mb-2">Status</h3>
+              </div>
+            </div>
+            <ul className="max-h-[220px]  overflow-scroll flex flex-col gap-3">
               {results.allPages.map((url) => (
                 <li
-                  key={url}
-                  className=" flex gap-3   items-center hover:bg-gray-200 transition-all px-2 rounded-md"
+                  key={url.url}
+                  className=" flex gap-3 justify-between   items-center hover:bg-gray-100 transition-all px-2 py-2 rounded-md"
                 >
-                  <a target="_blank" className="hover:underline" href={url}>
-                    {url}
+                  <a
+                    target="_blank"
+                    className="hover:underline flex gap-3  items-center "
+                    href={url.url}
+                  >
+                    {`${url.url}`}
                   </a>
+
+                  {/* <a target="_blank" className="hover:underline" href={url.url}>
+                    {`<-${url.parentUrl}`}
+                  </a> */}
+
                   {results.notFound.includes(url) ? (
-                    <div className=" text-white rounded size-4 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
-                      404
+                    <div className="flex gap-4 justify-center items-center">
+                      <a
+                        target="_blank"
+                        href={url.parentUrl}
+                        className="group relative flex justify-center items-center"
+                      >
+                        <div className="bg-gray-200 aspect-square rounded-full size-6 p-1">
+                          <Network height={16} width={16} color="white" />
+                        </div>
+                        <div className=" absolute text-sm -top-2  right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
+                          Parent url :{`${url.parentUrl}`}{" "}
+                        </div>
+                      </a>
+                      <div className=" text-white rounded size-4 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
+                        404
+                      </div>
                     </div>
                   ) : (
-                    <div className=" text-xs text-white size-4 bg-green-400  py-2 px-4 rounded aspect-square  flex justify-center items-center">
-                      200
+                    <div className="flex gap-4 justify-center items-center relative">
+                      <a
+                        target="_blank"
+                        href={url.parentUrl}
+                        className="group relative flex justify-center items-center"
+                      >
+                        <div className="bg-gray-200 aspect-square rounded-full size-6 p-1">
+                          <Network height={16} width={16} color="white" />
+                        </div>
+                        <div className=" absolute text-sm -top-2  right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
+                          Parent url :{`${url.parentUrl}`}{" "}
+                        </div>
+                      </a>
+
+                      <div className=" text-xs text-white size-4 bg-green-400  py-2 px-4 rounded aspect-square  flex justify-center items-center">
+                        200
+                      </div>
                     </div>
                   )}
                 </li>
@@ -186,6 +249,56 @@ export default function ClientSideCrawler() {
           download the report once crawl is completed.
           <br></br> Please do not close the tab.
         </p>
+        <div
+          className={` flex flex-col gap-2 transition-all ${
+            showDisclaimer ? "" : "max-h-0 h-0 hidden"
+          }`}
+        >
+          Disclaimer<br></br>
+          This tool is designed solely for auditing purposes on websites owned,
+          operated, or authorized by the user. By using this tool, you
+          acknowledge and agree to the following terms:
+          <ol className="flex gap-1 flex-col">
+            <li>
+              Authorized Use Only: You may only use this tool to analyze and
+              audit websites for which you have explicit authorization.
+              Unauthorized access to other websites may violate local laws,
+              website terms of service, and/or data privacy regulations.
+            </li>
+            <li>
+              Compliance with Website Policies: You are solely responsible for
+              ensuring that your use of this tool complies with any applicable
+              terms of service, privacy policies, and local regulations for each
+              website you interact with. Misuse of this tool may result in legal
+              or administrative consequences.
+            </li>
+            <li>
+              User Responsibility: openCrawler assumes no responsibility or
+              liability for any misuse of this tool or for any actions taken by
+              users in violation of these terms. You agree to use this tool at
+              your own risk, and you accept full responsibility for any legal or
+              regulatory consequences arising from your use of this tool.
+            </li>
+            <li>
+              {" "}
+              No Data Storage: This tool does not collect, store, or distribute
+              any data from the websites it audits. It is designed to perform
+              minimal interactions strictly for the purpose of locating broker
+              links with user authorization.
+            </li>
+          </ol>
+        </div>
+        <div>
+          {" "}
+          By using this tool, you confirm that you understand and agree to{" "}
+          <span
+            className=" underline"
+            onClick={() => setShowDisclaimer(!showDisclaimer)}
+          >
+            Our terms
+          </span>{" "}
+          and that you will use the tool responsibly and legally.
+        </div>
       </div>
       {isCrawling && (
         <div className=" border rounded-md p-6 flex flex-col gap-4  w-full">
