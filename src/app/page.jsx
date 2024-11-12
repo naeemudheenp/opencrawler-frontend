@@ -101,7 +101,7 @@ export default function ClientSideCrawler() {
         await crawlPage(url);
       }
       setCurrentUrl("Crawl completed");
-      setIsCrawling(false);
+      // setIsCrawling(false);
     } catch (error) {
       alert("Unable to crawl.Make sure that internet is available.", error);
     }
