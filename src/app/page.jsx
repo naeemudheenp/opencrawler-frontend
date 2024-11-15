@@ -12,14 +12,6 @@ function isValidURL(url) {
   }
 }
 
-async function fetchUrl(url) {
-  try {
-    return await fetch(url);
-  } catch (error) {
-    return false;
-  }
-}
-
 export default function ClientSideCrawler() {
   const [startUrl, setStartUrl] = useState("");
   const [results, setResults] = useState({
@@ -40,58 +32,59 @@ export default function ClientSideCrawler() {
       return;
     }
     try {
+      console.log("rasagulla");
       setIsCrawling(true);
+
       const visited = new Set();
       const queue = [initialUrl];
-
+      console.log("rasagulla");
       const domain = new URL(initialUrl).origin;
 
       const crawlPage = async (url, parentUrl) => {
-        const response = await fetchUrl(url);
+        const data = await fetch(`/api/fetch?url=${url}`);
+        const response = await data.json();
+        console.log(response, "response-sumo");
 
-        if (response) {
-          setCurrentUrl(url);
+        setCurrentUrl(url);
 
-          // Record status
-          if (response.status === 404) {
+        // Record status
+        if (response.status != 200) {
+          console.log(url, "error", response.status);
+
+          setResults((prev) => ({
+            ...prev,
+            notFound: [...prev.notFound, url],
+          }));
+        }
+
+        console.log(results.notFound, "notfound");
+        console.log(results.allPages, "allpages");
+
+        const text = await response.text;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+
+        // Extract and filter links to the same domain
+        const links = Array.from(doc.querySelectorAll("a"))
+          .map((link) => link.href)
+          .filter((href) => href.startsWith(domain));
+
+        // Add new links to the queue if they haven't been visited
+        for (const link of links) {
+          if (!visited.has(link)) {
+            queue.push(link);
             setResults((prev) => ({
               ...prev,
-              notFound: [
-                ...prev.notFound,
+              allPages: [
+                ...prev.allPages,
                 {
-                  url: url,
-                  parentUrl: parentUrl,
+                  url: link,
+                  parentUrl: url,
                 },
               ],
             }));
-          }
 
-          const text = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(text, "text/html");
-
-          // Extract and filter links to the same domain
-          const links = Array.from(doc.querySelectorAll("a"))
-            .map((link) => link.href)
-            .filter((href) => href.startsWith(domain));
-
-          // Add new links to the queue if they haven't been visited
-          for (const link of links) {
-            if (!visited.has(link)) {
-              queue.push(link);
-              setResults((prev) => ({
-                ...prev,
-                allPages: [
-                  ...prev.allPages,
-                  {
-                    url: link,
-                    parentUrl: url,
-                  },
-                ],
-              }));
-
-              visited.add(link);
-            }
+            visited.add(link);
           }
         }
       };
@@ -103,6 +96,8 @@ export default function ClientSideCrawler() {
       setCurrentUrl("Crawl completed");
       // setIsCrawling(false);
     } catch (error) {
+      console.log("error-real", error);
+
       alert("Unable to crawl.Make sure that internet is available.", error);
     }
   };
@@ -110,7 +105,7 @@ export default function ClientSideCrawler() {
   const startCrawl = () => {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
     setCurrentUrl("");
-    crawlSite(startUrl, startUrl);
+    crawlSite(startUrl);
   };
 
   return (
@@ -199,8 +194,9 @@ export default function ClientSideCrawler() {
                     {`<-${url.parentUrl}`}
                   </a> */}
 
-                  {results.notFound.includes(url) ? (
+                  {results.notFound.includes(url.url) ? (
                     <div className="flex gap-4 justify-center items-center">
+                      {console.log(url, "notfoun")}
                       <a
                         target="_blank"
                         href={url.parentUrl}
