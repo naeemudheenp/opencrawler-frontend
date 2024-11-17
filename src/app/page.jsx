@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-import { Github, Network } from "lucide-react";
+import { Github, Library, Network, Rss } from "lucide-react";
 
 function isValidURL(url) {
   try {
@@ -115,18 +115,27 @@ export default function ClientSideCrawler() {
         <div className="flex flex-col gap-2">
           <h1 className=" font-bold text-3xl text-black flex items-center gap-2">
             openCrawler
+            <span className=" bg-black text-white p-1 px-2  rounded-lg text-sm">
+              Beta
+            </span>
             <a
-              href="https://github.com/naeemudheenp/OpenCrawler"
+              href="https://github.com/naeemudheenp/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground  transition-colors"
               aria-label="View project on GitHub"
             >
-              <Github className="h-6 w-6" />
+              <Github className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
             </a>
-            <span className=" bg-black text-white p-1 px-2  rounded-lg text-sm">
-              Beta
-            </span>
+            <a
+              href="/stories/improve-seo-with-opencrawler"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground  transition-colors"
+              aria-label="Stories"
+            >
+              <Rss className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
+            </a>
           </h1>
           <p>Check for 404 pages thorught the website.</p>
         </div>
