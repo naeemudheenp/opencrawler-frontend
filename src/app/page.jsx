@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { PrismaClient } from "@prisma/client";
-import { Github, Library, Network, Rss } from "lucide-react";
+import { Github, Network, Rss } from "lucide-react";
 
 function isValidURL(url) {
   try {
@@ -31,8 +30,6 @@ export default function ClientSideCrawler() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: url }),
     });
-
-    console.log(response, "response");
   }
 
   const crawlSite = async (initialUrl) => {
