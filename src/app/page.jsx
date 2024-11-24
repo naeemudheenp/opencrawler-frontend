@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Github, Network, Rss } from "lucide-react";
+import TechStackShowcase from "./components/tech-stack-showcase";
 
 function isValidURL(url) {
   try {
@@ -276,10 +277,10 @@ export default function ClientSideCrawler() {
         </div>
 
         <p>
-          Note: This crawler fetches links from the initial page and follows
-          nested links, which may take some time to complete.<br></br>You can
-          download the report once crawl is completed.
-          <br></br> Please do not close the tab.
+          Note: The crawler is currently fetching links from the initial page
+          and following nested links. This process may take some time to
+          complete.<br></br> Do not close this tab until the process is
+          complete.
         </p>
         <div
           className={` flex flex-col gap-2 transition-all ${
@@ -332,6 +333,8 @@ export default function ClientSideCrawler() {
           and that you will use the tool responsibly and legally.
         </div>
       </div>
+
+      <TechStackShowcase />
     </section>
   );
 }
