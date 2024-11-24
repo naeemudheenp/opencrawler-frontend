@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-
+import { PrismaClient } from "@prisma/client";
 import { Github, Library, Network, Rss } from "lucide-react";
 
 function isValidURL(url) {
@@ -25,6 +25,16 @@ export default function ClientSideCrawler() {
   const [resultReady, setIsResultReady] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+  async function logToServer(url) {
+    const response = await fetch("/api/log-to-server", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url }),
+    });
+
+    console.log(response, "response");
+  }
+
   const crawlSite = async (initialUrl) => {
     console.log(initialUrl, "initialUrl");
 
@@ -33,19 +43,14 @@ export default function ClientSideCrawler() {
       return;
     }
     try {
-      console.log("rasagulla");
       setIsCrawling(true);
-
       const visited = new Set();
       const queue = [initialUrl];
-      console.log("rasagulla");
       const domain = new URL(initialUrl).origin;
 
       const crawlPage = async (url, parentUrl) => {
         const data = await fetch(`/api/fetch?url=${url}`);
         const response = await data.json();
-        console.log(response, "response-sumo");
-
         setCurrentUrl(url);
 
         // Record status
@@ -103,9 +108,10 @@ export default function ClientSideCrawler() {
     }
   };
 
-  const startCrawl = () => {
+  const startCrawl = async () => {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
     setCurrentUrl("");
+    await logToServer(startUrl);
     crawlSite(startUrl);
   };
 
