@@ -23,6 +23,9 @@ export default function ClientSideCrawler() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [resultReady, setIsResultReady] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [crawlAllowed, setCrawlAllowed] = useState(false);
+
+  var terminateCrawl = false;
 
   async function logToServer(url) {
     const response = await fetch("/api/log-to-server", {
@@ -32,20 +35,19 @@ export default function ClientSideCrawler() {
     });
   }
 
-  const crawlSite = async (initialUrl) => {
-    console.log(initialUrl, "initialUrl");
-
+  const crawlSite = async (initialUrl, crawlAllowed) => {
     if (!isValidURL(initialUrl)) {
       alert("Invalid url");
       return;
     }
     try {
       setIsCrawling(true);
+
       const visited = new Set();
       const queue = [initialUrl];
       const domain = new URL(initialUrl).origin;
 
-      const crawlPage = async (url, parentUrl) => {
+      const crawlPage = async (url, terminateCrawl) => {
         const data = await fetch(`/api/fetch?url=${url}`);
         const response = await data.json();
         setCurrentUrl(url);
@@ -68,9 +70,9 @@ export default function ClientSideCrawler() {
         const doc = parser.parseFromString(text, "text/html");
 
         // Extract and filter links to the same domain
-        const links = Array.from(doc.querySelectorAll("a"))
+        const links = Array.from(doc.querySelectorAll("[href]"))
           .map((link) => link.href)
-          .filter((href) => href.startsWith(domain));
+          .filter((href) => href?.startsWith(domain) || href?.startsWith("/"));
 
         // Add new links to the queue if they haven't been visited
         for (const link of links) {
@@ -94,7 +96,11 @@ export default function ClientSideCrawler() {
 
       while (queue.length > 0) {
         const url = queue.shift();
-        await crawlPage(url);
+        if (!terminateCrawl) {
+          await crawlPage(url);
+        } else {
+          return;
+        }
       }
       setCurrentUrl("Crawl completed");
       // setIsCrawling(false);
@@ -109,7 +115,16 @@ export default function ClientSideCrawler() {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
     setCurrentUrl("");
     await logToServer(startUrl);
-    crawlSite(startUrl);
+    terminateCrawl = false;
+
+    crawlSite(startUrl, terminateCrawl);
+  };
+  const stopCrawl = async () => {
+    setResults({ notFound: [], allPages: [], parentUrls: [] });
+    terminateCrawl = true;
+    setCurrentUrl("");
+    setIsCrawling(false);
+    setResults({ notFound: [], allPages: [], parentUrls: [] });
   };
 
   return (
@@ -122,7 +137,7 @@ export default function ClientSideCrawler() {
               Beta
             </span>
             <a
-              href="https://github.com/naeemudheenp/"
+              href="https://github.com/naeemudheenp/openCrawler-public-"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground  transition-colors"
@@ -156,6 +171,14 @@ export default function ClientSideCrawler() {
             disabled={isCrawling}
           >
             {isCrawling ? "Crawling..." : "Start Crawling"}
+          </button>
+          <button
+            className={` ${
+              !isCrawling && " hidden"
+            } bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all `}
+            onClick={stopCrawl}
+          >
+            Stop
           </button>
         </div>
 
@@ -309,32 +332,6 @@ export default function ClientSideCrawler() {
           and that you will use the tool responsibly and legally.
         </div>
       </div>
-      {isCrawling && (
-        <div className=" border rounded-md p-6 flex flex-col gap-4  w-full">
-          <div>
-            <h2 className=" text-black font-bold mb-2 text-xl">
-              Upcoming features.
-            </h2>
-            <p>Exciting new capabilities on the horizon</p>
-          </div>
-          <ul className=" w-full">
-            <li className=" mb-4">
-              <span className="  font-bold">Report Download Option</span> - Our
-              upcoming report download feature will enable users to effortlessly
-              access detailed reports of 404 error pages identified across their
-              website, streamlining the process of addressing and resolving
-              broken links for an optimized user experience.
-            </li>
-            <li>
-              <span className=" font-bold">Automated Report Emailing</span> -
-              Our upcoming automated report emailing feature will deliver a
-              comprehensive 404 error report directly to your inbox as soon as
-              the scan is complete, ensuring you receive timely updates without
-              needing to check manually.
-            </li>
-          </ul>
-        </div>
-      )}
     </section>
   );
 }
