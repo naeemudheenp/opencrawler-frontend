@@ -49,8 +49,16 @@ export default function ClientSideCrawler() {
       const domain = new URL(initialUrl).origin;
 
       const crawlPage = async (url, terminateCrawl) => {
-        const data = await fetch(`/api/fetch?url=${url}`);
-        const response = await data.json();
+        let data;
+        let response;
+
+        try {
+          data = await fetch(`/api/fetch?url=${url}`);
+          response = await data.json();
+        } catch (error) {
+          console.log("internal error", error);
+          return;
+        }
         setCurrentUrl(url);
 
         // Record status
@@ -63,9 +71,6 @@ export default function ClientSideCrawler() {
           }));
         }
 
-        console.log(results.notFound, "notfound");
-        console.log(results.allPages, "allpages");
-
         const text = await response.text;
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, "text/html");
@@ -73,7 +78,11 @@ export default function ClientSideCrawler() {
         // Extract and filter links to the same domain
         const links = Array.from(doc.querySelectorAll("[href]"))
           .map((link) => link.href)
-          .filter((href) => href?.startsWith(domain) || href?.startsWith("/"));
+          .filter(
+            (href) =>
+              typeof href === "string" &&
+              (href.startsWith(domain) || href.startsWith("/"))
+          );
 
         // Add new links to the queue if they haven't been visited
         for (const link of links) {
@@ -233,7 +242,6 @@ export default function ClientSideCrawler() {
 
                   {results.notFound.includes(url.url) ? (
                     <div className="flex gap-4 justify-center items-center">
-                      {console.log(url, "notfoun")}
                       <a
                         target="_blank"
                         href={url.parentUrl}
