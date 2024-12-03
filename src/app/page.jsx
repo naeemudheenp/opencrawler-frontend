@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Github, Network, Rss } from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
+import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
 
 function isValidURL(url) {
   try {
@@ -24,31 +26,52 @@ export default function ClientSideCrawler() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [resultReady, setIsResultReady] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const [crawlAllowed, setCrawlAllowed] = useState(false);
+  const [reportReady, setIsReportReady] = useState(false);
 
   var terminateCrawl = false;
 
   async function logToServer(url) {
-    const response = await fetch("/api/log-to-server", {
+    await fetch("/api/log-to-server", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: url }),
     });
   }
 
-  const crawlSite = async (initialUrl, crawlAllowed) => {
+  const downloadReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Report", 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Generated with openCrawler`, 14, 30);
+    doc.text(`https://www.opencrawler.in/`, 14, 40);
+    const headers = [["Url", "Parent url", "Status"]];
+    const data = results.allPages.map((result) => [
+      result.url,
+      result.parentUrl,
+      results.notFound.includes(result.url) ? "Not Found" : "Found",
+    ]);
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 50,
+    });
+    doc.save("opencrawler-report.pdf");
+  };
+
+  const crawlSite = async (initialUrl) => {
     if (!isValidURL(initialUrl)) {
       alert("Invalid url");
       return;
     }
     try {
       setIsCrawling(true);
-
+      await logToServer(startUrl);
       const visited = new Set();
       const queue = [initialUrl];
       const domain = new URL(initialUrl).origin;
 
-      const crawlPage = async (url, terminateCrawl) => {
+      const crawlPage = async (url) => {
         let data;
         let response;
 
@@ -112,11 +135,10 @@ export default function ClientSideCrawler() {
           return;
         }
       }
+      setIsReportReady(true);
       setCurrentUrl("Crawl completed");
       // setIsCrawling(false);
     } catch (error) {
-      console.log("error-real", error);
-
       alert("Unable to crawl.Make sure that internet is available.", error);
     }
   };
@@ -124,10 +146,9 @@ export default function ClientSideCrawler() {
   const startCrawl = async () => {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
     setCurrentUrl("");
-    await logToServer(startUrl);
+    setIsReportReady(false);
     terminateCrawl = false;
-
-    crawlSite(startUrl, terminateCrawl);
+    crawlSite(startUrl);
   };
   const stopCrawl = async () => {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
@@ -143,7 +164,7 @@ export default function ClientSideCrawler() {
         <div className="flex flex-col gap-2">
           <h1 className=" font-bold text-3xl text-black flex items-center gap-2">
             openCrawler
-            <span className=" bg-black text-white p-1 px-2  rounded-lg text-sm">
+            <span className="bg-black text-white p-1 px-2  rounded-lg text-sm">
               Beta
             </span>
             <a
@@ -180,7 +201,11 @@ export default function ClientSideCrawler() {
             onClick={startCrawl}
             disabled={isCrawling}
           >
-            {isCrawling ? "Crawling..." : "Start Crawling"}
+            {isCrawling
+              ? reportReady
+                ? "Completed"
+                : "Crawling.."
+              : "Start Crawling"}
           </button>
           <button
             className={` ${
@@ -189,6 +214,15 @@ export default function ClientSideCrawler() {
             onClick={stopCrawl}
           >
             Stop
+          </button>
+          <button
+            disabled={!reportReady}
+            onClick={downloadReport}
+            className={`bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all ${
+              !reportReady && "cursor-not-allowed hover:bg-black/60"
+            } ${!isCrawling && "hidden"}`}
+          >
+            Download Report
           </button>
         </div>
 
@@ -201,7 +235,11 @@ export default function ClientSideCrawler() {
             {!resultReady && (
               <div className=" flex gap-2  items-center  xl:w-[50%] flex-nowrap">
                 Currently Crawling: {currentUrl || "example.com"}
-                <div className=" aspect-auto rounded-full p-2 size-2 bg-gradient-to-r from-black/80 to-black/40 animate-spin"></div>
+                <div
+                  className={` aspect-auto rounded-full p-2 size-2 bg-gradient-to-r from-black/80 to-black/40 animate-spin ${
+                    reportReady && "!hidden"
+                  }`}
+                ></div>
               </div>
             )}
             <div>

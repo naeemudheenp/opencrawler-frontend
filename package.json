@@ -13,6 +13,8 @@
     "@vercel/analytics": "^1.4.0",
     "@vercel/speed-insights": "^1.1.0",
     "axios": "^1.7.7",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.456.0",
     "next": "15.0.2",
     "prisma": "^5.22.0",
