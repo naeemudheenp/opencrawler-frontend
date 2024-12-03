@@ -41,20 +41,28 @@ export default function ClientSideCrawler() {
   const downloadReport = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Report", 14, 20);
+    doc.text("Report-404 pages", 14, 20);
     doc.setFontSize(12);
     doc.text(`Generated with openCrawler`, 14, 30);
     doc.text(`https://www.opencrawler.in/`, 14, 40);
-    const headers = [["Url", "Parent url", "Status"]];
+    const headers = [["Url", "Parent url"]];
     const data = results.allPages.map((result) => [
       result.url,
       result.parentUrl,
       results.notFound.includes(result.url) ? "Not Found" : "Found",
     ]);
+
+    const notFoundItems = data
+      .filter((item) => results.notFound.includes(item[0]))
+      .map(([url, parentUrl]) => [url, parentUrl]);
     autoTable(doc, {
       head: headers,
-      body: data,
+      body: notFoundItems,
       startY: 50,
+      styles: {
+        cellPadding: 0,
+      },
+      margin: { top: 0, right: 5, bottom: 0, left: 5 },
     });
     doc.save("opencrawler-report.pdf");
   };
