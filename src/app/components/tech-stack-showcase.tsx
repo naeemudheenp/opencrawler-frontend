@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function TechStackShowcase() {
   return (
-    <div className="relative -bottom-80 !mb-20  w-full max-w-2xl mx-auto bg-white  shadow-md rounded-lg overflow-hidden">
+    <div className="relative -bottom-[280px] !mb-20  w-full max-w-2xl mx-auto bg-white  shadow-md rounded-lg overflow-hidden">
       <div className="p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold  text-black  mr-4">Built On</h2>
