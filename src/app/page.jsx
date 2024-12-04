@@ -59,8 +59,9 @@ export default function ClientSideCrawler() {
       head: headers,
       body: notFoundItems,
       startY: 50,
+
       styles: {
-        cellPadding: 0,
+        cellPadding: 5,
       },
       margin: { top: 0, right: 5, bottom: 0, left: 5 },
     });
