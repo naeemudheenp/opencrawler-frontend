@@ -196,8 +196,8 @@ export default function ClientSideCrawler() {
             <div className="flex justify-between px-2">
               <h3 className=" mb-2">Discovered links</h3>
               <div className="flex gap-2">
-                <h3 className=" mb-2">Parent link</h3>
-                <h3 className=" mb-2">Status</h3>
+                <h3 className=" mb-2 w-20">Parent link</h3>
+                <h3 className=" mb-2  w-20">Status</h3>
               </div>
             </div>
             <ul className="max-h-[220px] overflow-scroll flex flex-col gap-3">
@@ -220,15 +220,16 @@ export default function ClientSideCrawler() {
                         href={url.parentUrl}
                         className="group relative flex justify-center items-center"
                       >
-                        <div className="bg-gray-200 aspect-square rounded-full size-6 p-1">
-                          <Network height={16} width={16} color="white" />
+                        <div className="bg-gray-200 flex justify-center items-center aspect-square rounded-full size-8 p-1">
+                          <Network height={18} width={18} color="white" />
                         </div>
-                        <div className="absolute text-sm -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
-                          Parent url :{url.parentUrl}
+                        <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
+                          The parent URL (source of the link):{url.parentUrl}.
+                          Click the icon to redirect.
                         </div>
                       </a>
-                      <div className="text-white rounded size-4 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
-                        404
+                      <div className="text-white rounded h-8    w-20 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
+                        Broken(404)
                       </div>
                     </div>
                   ) : (
@@ -238,16 +239,17 @@ export default function ClientSideCrawler() {
                         href={url.parentUrl}
                         className="group relative flex justify-center items-center"
                       >
-                        <div className="bg-gray-200 aspect-square rounded-full size-6 p-1">
-                          <Network height={16} width={16} color="white" />
+                        <div className="bg-gray-200 flex justify-center items-center aspect-square rounded-full size-8 p-1">
+                          <Network height={18} width={18} color="white" />
                         </div>
-                        <div className="absolute text-sm -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
-                          Parent url :{url.parentUrl}
+                        <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
+                          The parent URL (source of the link):{url.parentUrl}.
+                          Click the icon to redirect.
                         </div>
                       </a>
 
-                      <div className="text-xs text-white size-4 bg-green-400  py-2 px-4 rounded aspect-square flex justify-center items-center">
-                        200
+                      <div className="text-xs text-white h-8    w-20 bg-green-400  py-2 px-4 rounded aspect-square flex justify-center items-center">
+                        Valid(200)
                       </div>
                     </div>
                   )}
