@@ -41,6 +41,47 @@ export default function RootLayout({
 
   gtag('config', 'G-FXL9EH2EV8');`}
         </Script>
+
+        <Script id="ss-spot-script">{`
+  (function () {
+    var e = "ss-widget",
+    t = "script",
+    a = document,
+    r = window;
+    var s, n, c;
+    r.SP_TARGET_TOKEN = "tar-id4m7eBXsRAkpTByen9W44";
+    r.SS_SP_ACCOUNT = "opencrawler.surveysparrow.com";
+    if (!a.getElementById(e)) {
+      var S = function () {
+        S.update(arguments);
+      };
+      S.args = [];
+      S.update = function (e) {
+        S.args.push(e);
+      };
+      r.SpotCheckLauncher = S;
+      s = a.getElementsByTagName(t);
+      c = s[s.length - 1];
+      n = a.createElement(t);
+      n.type = "text/javascript";
+      n.async = !0;
+      n.id = e;
+      n.src = [
+        "https://",
+        "opencrawler.surveysparrow.com/spotcheck/widget/",
+        r.SP_TARGET_TOKEN,
+      ].join("");
+      c.parentNode.insertBefore(n, c);
+    }
+  })();
+`}</Script>
+        <Script>{`
+  window.SpotCheckLauncher('popup',  {
+    userDetails: {},
+    variables: {},
+    properties: {}
+  });
+`}</Script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white flex justify-center items-center !text-black`}
