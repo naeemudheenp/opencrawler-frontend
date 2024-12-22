@@ -57,9 +57,13 @@ export default function ClientSideCrawler() {
           );
 
         if (!links.length) {
-          const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
-          const data = await response.json();
-          links = data.links;
+          try {
+            const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
+            const data = await response.json();
+            links = data.links;
+          } catch (error) {
+            links = [];
+          }
         }
         for (const link of links) {
           if (!visited.has(link)) {
