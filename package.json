@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^130.0.0",
+    "@sparticuz/chromium-min": "121.0.0",
+    "puppeteer-core": "^21.9.0",
     "@prisma/client": "^5.22.0",
     "@vercel/analytics": "^1.4.0",
     "@vercel/speed-insights": "^1.1.0",
