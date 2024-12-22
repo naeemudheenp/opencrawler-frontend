@@ -9,7 +9,6 @@ export default function ClientSideCrawler() {
   const [startUrl, setStartUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [isReportReady, setIsReportReady] = useState(false);
   let terminateCrawl = false;
   const [results, setResults] = useState({
@@ -36,7 +35,6 @@ export default function ClientSideCrawler() {
           data = await fetch(`/api/fetch?url=${url}`);
           response = await data.json();
         } catch (error) {
-          console.log("internal error", error);
           return;
         }
         setCurrentUrl(url);
@@ -50,13 +48,19 @@ export default function ClientSideCrawler() {
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, "text/html");
 
-        const links = Array.from(doc.querySelectorAll("[href]"))
+        let links = Array.from(doc.querySelectorAll("[href]"))
           .map((link) => link.href)
           .filter(
             (href) =>
               typeof href === "string" &&
               (href.startsWith(domain) || href.startsWith("/"))
           );
+
+        if (!links.length) {
+          const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
+          const data = await response.json();
+          links = data.links;
+        }
         for (const link of links) {
           if (!visited.has(link)) {
             queue.push(link);
@@ -77,6 +81,7 @@ export default function ClientSideCrawler() {
 
       while (queue.length > 0) {
         const url = queue.shift();
+
         if (!terminateCrawl) {
           await crawlPage(url);
         } else {
