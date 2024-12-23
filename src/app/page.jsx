@@ -133,7 +133,7 @@ export default function ClientSideCrawler() {
               <Github className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
             </a>
             <a
-              href="/stories/improve-seo-with-opencrawler"
+              href="/stories/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground transition-colors"
