@@ -13,7 +13,7 @@ export default function ImproveSeoPage() {
           >
             OpenCrawler
           </a>{" "}
-          Helps Fix It?
+          Helps Find It?
         </h1>
         <p className="text-lg text-gray-600">
           <a

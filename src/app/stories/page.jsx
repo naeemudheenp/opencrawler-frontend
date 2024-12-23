@@ -28,7 +28,7 @@ export default function StoriesHome() {
           href="/stories/what-is-broken-link"
           className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
         >
-          What is a Broken Link and How OpenCrawler Helps Fix It.
+          What is a Broken Link and How OpenCrawler Helps Find It.
           <div className=" group-hover:rotate-[340deg] transition-all duration-500">
             <ArrowRightCircleIcon />
           </div>
