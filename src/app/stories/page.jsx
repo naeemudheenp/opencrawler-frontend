@@ -33,6 +33,16 @@ export default function StoriesHome() {
             <ArrowRightCircleIcon />
           </div>
         </a>
+        <a
+          href="/stories/how-sitemaps-enhance-seo"
+          className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
+        >
+          How Sitemaps Enhance SEO and How OpenCrawler Helps You Scan Your
+          Sitemap URLs
+          <div className=" group-hover:rotate-[340deg] transition-all duration-500">
+            <ArrowRightCircleIcon />
+          </div>
+        </a>
       </div>
 
       {/* Footer Section */}
