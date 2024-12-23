@@ -4,18 +4,82 @@ import React, { useState } from "react";
 import { Github, Network, Rss } from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
+import { ToolTip } from "../app/components/tooltip";
+const { parseStringPromise } = require("xml2js");
 
 export default function ClientSideCrawler() {
   const [startUrl, setStartUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
   const [isReportReady, setIsReportReady] = useState(false);
+  const [isSiteMapMode, setIsSiteMapMode] = useState(false);
   let terminateCrawl = false;
+
+  const handleToggle = () => {
+    setIsSiteMapMode((prev) => !prev);
+  };
+
   const [results, setResults] = useState({
     notFound: [],
     allPages: [],
     parentUrls: [],
   });
+
+  const crawlSiteUsingSitemap = async (initialUrl) => {
+    const parsedUrl = new URL(initialUrl);
+    const isSitemap = parsedUrl.pathname.endsWith(".xml");
+    if (!isSitemap) {
+      alert("Invalid sitemap");
+      return;
+    }
+    setIsCrawling(true);
+    let response = await fetch(initialUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const xml = await response.text();
+    const result = await parseStringPromise(xml);
+    let urls;
+
+    try {
+      urls = result.sitemapindex.sitemap.map((entry) => entry.loc[0]);
+    } catch {
+      urls = result.urlset.url.map((entry) => entry.loc[0]);
+    }
+
+    await Promise.all(
+      urls.map(async (url) => {
+        try {
+          setCurrentUrl(url);
+          const data = await fetch(`/api/fetch?url=${url}`);
+          const response = await data.json();
+
+          if (response.status != 200) {
+            setResults((prev) => ({
+              ...prev,
+              notFound: [...prev.notFound, url],
+            }));
+          }
+
+          setResults((prev) => ({
+            ...prev,
+            allPages: [
+              ...prev.allPages,
+              {
+                url: url,
+                parentUrl: initialUrl,
+              },
+            ],
+          }));
+        } catch (error) {
+          console.error("Error fetching URL:", url, error);
+        }
+      })
+    );
+
+    setIsReportReady(true);
+    setCurrentUrl("Crawl completed");
+  };
 
   const crawlSite = async (initialUrl) => {
     if (!isValidURL(initialUrl)) {
@@ -104,7 +168,12 @@ export default function ClientSideCrawler() {
     setCurrentUrl("");
     setIsReportReady(false);
     terminateCrawl = false;
-    crawlSite(startUrl);
+
+    if (isSiteMapMode) {
+      crawlSiteUsingSitemap(startUrl);
+    } else {
+      crawlSite(startUrl);
+    }
   };
   const stopCrawl = async () => {
     setResults({ notFound: [], allPages: [], parentUrls: [] });
@@ -146,12 +215,17 @@ export default function ClientSideCrawler() {
             Scan the entire website for 404(broken) pages and its parent pages.
           </p>
         </div>
+
         <div className="flex gap-2 max-md:flex-col">
           <input
             type="url"
             value={startUrl}
             onChange={(e) => setStartUrl(e.target.value)}
-            placeholder="https://example.com"
+            placeholder={
+              isSiteMapMode
+                ? "https://example.com/sitemap.xml"
+                : "https://example.com"
+            }
             className="border py-1 px-2 rounded-md w-96 max-md:w-full"
           />
           <button
@@ -165,14 +239,14 @@ export default function ClientSideCrawler() {
                 : "Crawling.."
               : "Start Crawling"}
           </button>
-          <button
+          {/* <button
             className={` ${
               !isCrawling && "hidden"
             } bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all`}
             onClick={stopCrawl}
           >
             Stop
-          </button>
+          </button> */}
           <button
             disabled={!isReportReady}
             onClick={() => {
@@ -184,6 +258,37 @@ export default function ClientSideCrawler() {
           >
             Download Report
           </button>
+        </div>
+
+        <div className=" mt-3 flex gap-2 items-center">
+          <button
+            aria-controls="listbox-id"
+            aria-expanded="false"
+            type="button"
+            onClick={handleToggle}
+            className="relative inline-flex h-9 w-44 items-center rounded-full bg-gray-200 transition-colors focus:outline-none   "
+          >
+            <span
+              className={`${
+                isSiteMapMode ? "translate-x-[5.75rem]" : " translate-x-1"
+              } inline-block h-7 w-20 transform rounded-full bg-white  transition-transform`}
+            />
+            <span
+              className={`absolute left-2 text-sm font-medium ${
+                isSiteMapMode ? "text-gray-500 " : "text-gray-800"
+              }`}
+            >
+              Deep scan
+            </span>
+            <span
+              className={`absolute right-2 text-sm font-medium ${
+                isSiteMapMode ? "text-gray-800" : " text-gray-500"
+              }`}
+            >
+              Sitemap
+            </span>
+          </button>
+          <ToolTip />
         </div>
 
         <div
@@ -269,7 +374,7 @@ export default function ClientSideCrawler() {
         </div>
 
         <p>
-          The process may take some time to complete , please keep the tab open.
+          The process may take some time to complete,please keep the tab open.
           <br></br> A report will be generated upon completion.
         </p>
       </div>

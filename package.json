@@ -9,10 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "@sparticuz/chromium": "^130.0.0",
     "@sparticuz/chromium-min": "121.0.0",
-    "puppeteer-core": "^21.9.0",
-    "@prisma/client": "^5.22.0",
     "@vercel/analytics": "^1.4.0",
     "@vercel/speed-insights": "^1.1.0",
     "axios": "^1.7.7",
@@ -22,6 +21,7 @@
     "next": "15.0.2",
     "prisma": "^5.22.0",
     "puppeteer": "^23.7.0",
+    "puppeteer-core": "^21.9.0",
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-dom": "19.0.0-rc-02c0e824-20241028",
     "xml2js": "^0.6.2"
