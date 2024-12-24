@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Github, Network, Rss } from "lucide-react";
+import { Activity, Github, Map, MapPin, Rss } from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
 import { ToolTip } from "../app/components/tooltip";
+import { Input } from "@chakra-ui/react";
 const { parseStringPromise } = require("xml2js");
 
 export default function ClientSideCrawler() {
@@ -184,14 +185,15 @@ export default function ClientSideCrawler() {
   };
 
   return (
-    <section className="xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full text-slate-400 flex-col gap-3 ">
-      <div className="w-full border  rounded-xl p-6 flex flex-col gap-4 mt-32">
-        <div className="flex flex-col gap-2">
+    <section className="xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full  text-black flex-col gap-3 ">
+      <div
+        className={`w-full border  rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${
+          isCrawling && !isReportReady && "animate-gradient-shadow"
+        }`}
+      >
+        <div className="flex flex-col gap-2 ">
           <h1 className="font-bold text-3xl text-black flex items-center gap-2">
             openCrawler
-            <div className="bg-black text-white p-1 px-2 rounded-lg text-sm">
-              Beta
-            </div>
             <a
               href="https://github.com/naeemudheenp/openCrawler-public-"
               target="_blank"
@@ -211,13 +213,14 @@ export default function ClientSideCrawler() {
               <Rss className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
             </a>
           </h1>
-          <p>
-            Scan the entire website for 404(broken) pages and its parent pages.
+          <p className=" font-normal text-gray-500">
+            Scan the entire website for 404 (broken) pages and their parent
+            pages efficiently.
           </p>
         </div>
 
-        <div className="flex gap-2 max-md:flex-col">
-          <input
+        <div className="flex gap-2 max-md:flex-col ">
+          <Input
             type="url"
             value={startUrl}
             onChange={(e) => setStartUrl(e.target.value)}
@@ -226,13 +229,16 @@ export default function ClientSideCrawler() {
                 ? "https://example.com/sitemap.xml"
                 : "https://example.com"
             }
-            className="border py-1 px-2 rounded-md w-96 max-md:w-full"
+            className="border py-3 px-2 rounded-md w-96 max-md:w-full bg-white"
           />
+
           <button
-            className="bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all"
+            className=" flex min-w-[140px] border-black border  group justify-center gap-2 items-center hover:bg-black hover:text-white cursor-pointer  text-black rounded-lg p-2  transition-all"
             onClick={startCrawl}
             disabled={isCrawling}
+            variant={"surface"}
           >
+            <Activity className="h-4 w-4 group-hover:rotate-45 transition-all" />
             {isCrawling
               ? isReportReady
                 ? "Completed"
@@ -247,17 +253,19 @@ export default function ClientSideCrawler() {
           >
             Stop
           </button> */}
-          <button
-            disabled={!isReportReady}
-            onClick={() => {
-              downloadReport(results);
-            }}
-            className={`bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all ${
-              !isReportReady && "cursor-not-allowed hover:bg-black/60"
-            } ${!isCrawling && "hidden"}`}
-          >
-            Download Report
-          </button>
+          {isReportReady && (
+            <button
+              disabled={!isReportReady}
+              onClick={() => {
+                downloadReport(results);
+              }}
+              className={`bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all ${
+                !isReportReady && "cursor-not-allowed hover:bg-black/60"
+              } ${!isCrawling && "hidden"}`}
+            >
+              Download Report
+            </button>
+          )}
         </div>
 
         <div className=" mt-3 flex gap-2 items-center">
@@ -274,17 +282,23 @@ export default function ClientSideCrawler() {
               } inline-block h-7 w-20 transform rounded-full bg-white  transition-transform`}
             />
             <span
-              className={`absolute left-2 text-sm font-medium ${
+              className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${
                 isSiteMapMode ? "text-gray-500 " : "text-gray-800"
               }`}
             >
+              {isSiteMapMode && (
+                <Activity height={13} width={13} className=" animate-pulse" />
+              )}
               Deep scan
             </span>
             <span
-              className={`absolute right-2 text-sm font-medium ${
+              className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${
                 isSiteMapMode ? "text-gray-800" : " text-gray-500"
               }`}
             >
+              {!isSiteMapMode && (
+                <Map height={13} width={13} className=" animate-pulse" />
+              )}
               Sitemap
             </span>
           </button>
@@ -293,8 +307,8 @@ export default function ClientSideCrawler() {
 
         <div
           className={`${
-            isCrawling ? "mt-7 " : "max-h-0 h-0 hidden"
-          } transition-all`}
+            isCrawling ? "mt-7  min-h-64" : "max-h-0 h-0 opacity-0 "
+          } transition-all duration-700 `}
         >
           <h2 className="flex gap-2 items-center justify-between">
             <div className="flex gap-2  items-center  xl:w-[50%] flex-nowrap">
@@ -306,8 +320,9 @@ export default function ClientSideCrawler() {
               ></div>
             </div>
           </h2>
-          <div className="border h-auto p-3 my-3 rounded-md">
-            <div className="flex justify-between px-2">
+
+          <div className="border h-auto py-5 my-3 rounded-md ">
+            <div className="flex justify-between px-5">
               <h3 className=" mb-2">Discovered links</h3>
               <div className="flex gap-2">
                 <h3 className=" mb-2 w-20">Parent link</h3>
@@ -318,7 +333,7 @@ export default function ClientSideCrawler() {
               {results.allPages.map((url) => (
                 <li
                   key={url.url}
-                  className="flex gap-3 justify-between items-center hover:bg-gray-100 transition-all px-2 py-2 rounded-md"
+                  className="flex gap-3 justify-between items-center px-5 border-b border-t border-gray-200 hover:bg-gray-100 transition-all  py-2.5"
                 >
                   <a
                     target="_blank"
@@ -334,15 +349,13 @@ export default function ClientSideCrawler() {
                         href={url.parentUrl}
                         className="group relative flex justify-center items-center"
                       >
-                        <div className="bg-gray-200 flex justify-center items-center aspect-square rounded-full size-8 p-1">
-                          <Network height={18} width={18} color="white" />
-                        </div>
+                        <MapPin className=" size-6 text-muted-foreground cursor-pointer" />
                         <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
                           The parent URL (source of the link):{url.parentUrl}.
                           Click the icon to redirect.
                         </div>
                       </a>
-                      <div className="text-white rounded h-8    w-20 bg-red-400  py-2 px-4  text-xs  aspect-square flex justify-center items-center">
+                      <div className=" rounded h-8    w-20 bg-red-50 text-red-700  font-semibold   py-2 px-4  text-xs  aspect-square flex justify-center items-center">
                         Broken(404)
                       </div>
                     </div>
@@ -351,18 +364,16 @@ export default function ClientSideCrawler() {
                       <a
                         target="_blank"
                         href={url.parentUrl}
-                        className="group relative flex justify-center items-center"
+                        className="group relative flex justify-center items-center "
                       >
-                        <div className="bg-gray-200 flex justify-center items-center aspect-square rounded-full size-8 p-1">
-                          <Network height={18} width={18} color="white" />
-                        </div>
+                        <MapPin className=" size-6 text-muted-foreground cursor-pointer" />
                         <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
                           The parent URL (source of the link):{url.parentUrl}.
                           Click the icon to redirect.
                         </div>
                       </a>
 
-                      <div className="text-xs text-white h-8    w-20 bg-green-400  py-2 px-4 rounded aspect-square flex justify-center items-center">
+                      <div className="text-xs  h-8 bg-green-50 text-green-700  font-semibold   w-20   py-2 px-4 rounded aspect-square flex justify-center items-center">
                         Valid(200)
                       </div>
                     </div>
@@ -374,8 +385,8 @@ export default function ClientSideCrawler() {
         </div>
 
         <p>
-          The process may take some time to complete,please keep the tab open.
-          <br></br> A report will be generated upon completion.
+          This process may take a few moments. Please keep the tab open.{" "}
+          <br></br>A report will be generated once completed.
         </p>
       </div>
 
