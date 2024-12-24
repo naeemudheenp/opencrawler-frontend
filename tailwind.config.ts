@@ -15,10 +15,10 @@ const config: Config = {
       keyframes: {
         "gradient-shadow": {
           "0%, 100%": {
-            boxShadow: "0 4px 20px  rgb(255, 99, 71.0.6))",
+            boxShadow: "0 4px 20px rgba(255, 0, 150, 0.5)",
           },
           "50%": {
-            boxShadow: "0 6px 25px rgba(0, 1, 0,0.8)",
+            boxShadow: "0 6px 25px rgba(0, 200, 255, 0.7)",
           },
         },
       },
