@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Activity, Github, Map, MapPin, Rss } from "lucide-react";
+import { Activity, Download, Github, Map, MapPin, Rss } from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
 import { ToolTip } from "../app/components/tooltip";
@@ -233,17 +233,23 @@ export default function ClientSideCrawler() {
           />
 
           <button
-            className=" flex min-w-[140px] border-black border  group justify-center gap-2 items-center hover:bg-black hover:text-white cursor-pointer  text-black rounded-lg p-2  transition-all"
+            className=" flex min-w-[140px] border-black border bg-black  group justify-center gap-2 items-center  text-white cursor-pointer   rounded-lg p-2  transition-all"
             onClick={startCrawl}
             disabled={isCrawling}
             variant={"surface"}
           >
-            <Activity className="h-4 w-4 group-hover:rotate-45 transition-all" />
-            {isCrawling
-              ? isReportReady
-                ? "Completed"
-                : "Crawling.."
-              : "Start Crawling"}
+            <Activity
+              color="white"
+              className="h-4 w-4  group-hover:translate-y-[0px] -translate-y-[70px] transition-all duration-700"
+            />
+            <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
+              {" "}
+              {isCrawling
+                ? isReportReady
+                  ? "Completed"
+                  : "Crawling.."
+                : "Start Crawling"}
+            </div>
           </button>
           {/* <button
             className={` ${
@@ -259,11 +265,15 @@ export default function ClientSideCrawler() {
               onClick={() => {
                 downloadReport(results);
               }}
-              className={`bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all ${
+              className={` group bg-black gap-2 flex text-white rounded-lg p-2 border-none transition-all ${
                 !isReportReady && "cursor-not-allowed hover:bg-black/60"
               } ${!isCrawling && "hidden"}`}
             >
-              Download Report
+              <Download className="h-4 w-4 group-hover:translate-y-[4px] -translate-y-[70px] transition-all duration-700 " />
+              <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
+                {" "}
+                Download Report
+              </div>
             </button>
           )}
         </div>
