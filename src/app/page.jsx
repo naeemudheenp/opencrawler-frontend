@@ -104,10 +104,6 @@ export default function ClientSideCrawler() {
           );
           response = await data.json();
         } catch (error) {
-          console.log(process.env.NEXT_PUBLIC_BACKEND, "backed");
-
-          console.log(error, "error", process.env.NEXT_PUBLIC_BACKEND);
-
           return;
         }
         setCurrentUrl(url);
@@ -131,7 +127,10 @@ export default function ClientSideCrawler() {
 
         if (!links.length) {
           try {
-            const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status-using-puppeteer?url=${url}`
+            );
+
             const data = await response.json();
             links = data.links;
           } catch (error) {
