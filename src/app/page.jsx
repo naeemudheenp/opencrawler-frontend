@@ -52,7 +52,9 @@ export default function ClientSideCrawler() {
       urls.map(async (url) => {
         try {
           setCurrentUrl(url);
-          const data = await fetch(`/api/fetch?url=${url}`);
+          const data = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND}/api/fetch?url=${url}`
+          );
           const response = await data.json();
 
           if (response.status != 200) {
@@ -97,9 +99,15 @@ export default function ClientSideCrawler() {
         let data;
         let response;
         try {
-          data = await fetch(`/api/fetch?url=${url}`);
+          data = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`
+          );
           response = await data.json();
         } catch (error) {
+          console.log(process.env.NEXT_PUBLIC_BACKEND, "backed");
+
+          console.log(error, "error", process.env.NEXT_PUBLIC_BACKEND);
+
           return;
         }
         setCurrentUrl(url);
