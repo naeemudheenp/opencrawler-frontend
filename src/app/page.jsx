@@ -126,9 +126,7 @@ export default function ClientSideCrawler() {
 
         if (!links.length) {
           try {
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status-using-puppeteer?url=${url}`
-            );
+            const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
 
             const data = await response.json();
             links = data.links;
