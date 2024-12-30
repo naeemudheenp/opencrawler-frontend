@@ -53,10 +53,9 @@ export default function ClientSideCrawler() {
         try {
           setCurrentUrl(url);
           const data = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND}/api/fetch?url=${url}`
+            `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`
           );
           const response = await data.json();
-
           if (response.status != 200) {
             setResults((prev) => ({
               ...prev,
