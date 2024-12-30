@@ -40,12 +40,38 @@ export default function ClientSideCrawler() {
     }
     const xml = await response.text();
     const result = await parseStringPromise(xml);
-    let urls;
+    let urls = [];
 
     try {
-      urls = result.sitemapindex.sitemap.map((entry) => entry.loc[0]);
-    } catch {
-      urls = result.urlset.url.map((entry) => entry.loc[0]);
+      // Handle sitemap index type
+      if (result.sitemapindex) {
+        const sitemapUrls = result.sitemapindex.sitemap.map(
+          (entry) => entry.loc[0]
+        );
+
+        for (const sitemapUrl of sitemapUrls) {
+          const subResponse = await fetch(sitemapUrl);
+          if (!subResponse.ok) {
+            throw new Error(
+              `HTTP error in sub-sitemap! Status: ${subResponse.status}`
+            );
+          }
+          const subXml = await subResponse.text();
+          const subResult = await parseStringPromise(subXml);
+
+          try {
+            const subUrls = subResult.urlset.url.map((entry) => entry.loc[0]);
+            urls = urls.concat(subUrls);
+          } catch {
+            console.warn(`No valid URLs found in ${sitemapUrl}`);
+          }
+        }
+      } else {
+        // Handle regular sitemap type
+        urls = result.urlset.url.map((entry) => entry.loc[0]);
+      }
+    } catch (error) {
+      console.error("Failed to parse sitemap:", error);
     }
 
     await Promise.all(
@@ -73,9 +99,7 @@ export default function ClientSideCrawler() {
               },
             ],
           }));
-        } catch (error) {
-          console.error("Error fetching URL:", url, error);
-        }
+        } catch (error) {}
       })
     );
 
