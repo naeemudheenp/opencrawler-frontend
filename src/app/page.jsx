@@ -216,7 +216,7 @@ export default function ClientSideCrawler() {
   return (
     <section className="xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full  text-black flex-col gap-3 ">
       <div
-        className={`w-full   rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${
+        className={`w-full border border-gray-300   rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${
           isCrawling && !isReportReady && "animate-gradient-shadow"
         }`}
       >
