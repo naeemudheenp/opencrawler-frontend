@@ -6,5 +6,6 @@
 # next.js
 /.next/
 /out/
-/public/next-sitemap*
 
+
+.env
