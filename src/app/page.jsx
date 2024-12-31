@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Activity, Download, Github, Map, MapPin, Rss } from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
+import RhcModal from "./components/rhc";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
 import { ToolTip } from "../app/components/tooltip";
 import { Input } from "@chakra-ui/react";
@@ -215,7 +216,7 @@ export default function ClientSideCrawler() {
   return (
     <section className="xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full  text-black flex-col gap-3 ">
       <div
-        className={`w-full border  rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${
+        className={`w-full   rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${
           isCrawling && !isReportReady && "animate-gradient-shadow"
         }`}
       >
@@ -305,7 +306,7 @@ export default function ClientSideCrawler() {
             </button>
           )}
         </div>
-
+        <RhcModal />
         <div className=" mt-3 flex gap-2 items-center">
           <button
             aria-controls="listbox-id"
@@ -359,7 +360,7 @@ export default function ClientSideCrawler() {
             </div>
           </h2>
 
-          <div className="border h-auto py-5 my-3 rounded-md ">
+          <div className="border border-gray-200 h-auto py-5 my-3 rounded-md ">
             <div className="flex justify-between px-5">
               <h3 className=" mb-2">Discovered links</h3>
               <div className="flex gap-2">
@@ -371,7 +372,7 @@ export default function ClientSideCrawler() {
               {results.allPages.map((url) => (
                 <li
                   key={url.url}
-                  className="flex gap-3 justify-between items-center px-5 border-b border-t border-gray-200 hover:bg-gray-100 transition-all  py-2.5"
+                  className="flex gap-3 justify-between items-center px-5 border-b  border-gray-200 hover:bg-gray-100 transition-all  py-2.5"
                 >
                   <a
                     target="_blank"

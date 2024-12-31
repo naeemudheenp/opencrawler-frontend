@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Provider } from "@/components/ui/provider";
+
 import "./globals.css";
 import Script from "next/script";
 
