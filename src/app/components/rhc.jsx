@@ -60,7 +60,7 @@ export default function RhcModal() {
           </div>
           <div className=" mt-1 gap-1">
             <span className=" text-red-200 bg-red-600 px-2 py-1 rounded-md  text-sm">
-              422
+              202
             </span>
             <span className=" text-md">
               {" "}

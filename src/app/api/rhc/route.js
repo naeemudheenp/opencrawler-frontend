@@ -74,7 +74,7 @@ export async function GET(request) {
   const brokenLinks = await crawlSiteUsingSitemap(url) || []
 
   if (brokenLinks.length > 0) {
-    return NextResponse.json({ brokenLinks }, { status: 422 });
+    return NextResponse.json({ brokenLinks }, { status: 202 });
   } else {
     return NextResponse.json({ status: 200 });
   }
