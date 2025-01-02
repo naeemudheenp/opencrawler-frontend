@@ -5,28 +5,55 @@ const { parseStringPromise } = require("xml2js");
 
 const crawlSiteUsingSitemap = async (initialUrl) => {
   const parsedUrl = new URL(initialUrl);
-  let brokenUrl = []
+  let brokenUrl = [];
 
-  let response = await fetch(initialUrl);
+  const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response;
+      } catch (error) {
+        console.warn(`Retry ${i + 1} for ${url}: ${error}`);
+        if (i === retries - 1) throw error;
+        await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
+      }
+    }
+  };
 
-  const xml = await response.text();
-  const result = await parseStringPromise(xml);
-  let urls = [];
+  const processUrlsInBatches = async (urls, batchSize = 10) => {
+    for (let i = 0; i < urls.length; i += batchSize) {
+      const batch = urls.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (url) => {
+          try {
+            const data = await fetchWithRetry(
+              `${process.env.NEXT_PUBLIC_FRONTEND}/api/fetch?url=${url}`
+            );
+            const response = await data.json();
+            if (response.status != 200) {
+              brokenUrl.push(url);
+            }
+          } catch (error) {
+
+          }
+        })
+      );
+    }
+  };
 
   try {
-    // Handle sitemap index type
+    let response = await fetchWithRetry(initialUrl);
+    const xml = await response.text();
+    const result = await parseStringPromise(xml);
+    let urls = [];
+
     if (result.sitemapindex) {
-      const sitemapUrls = result.sitemapindex.sitemap.map(
-        (entry) => entry.loc[0]
-      );
+      const sitemapUrls = result.sitemapindex.sitemap.map((entry) => entry.loc[0]);
 
       for (const sitemapUrl of sitemapUrls) {
-        const subResponse = await fetch(sitemapUrl);
-        if (!subResponse.ok) {
-          throw new Error(
-            `HTTP error in sub-sitemap! Status: ${subResponse.status}`
-          );
-        }
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Throttle requests
+        const subResponse = await fetchWithRetry(sitemapUrl);
         const subXml = await subResponse.text();
         const subResult = await parseStringPromise(subXml);
 
@@ -38,31 +65,15 @@ const crawlSiteUsingSitemap = async (initialUrl) => {
         }
       }
     } else {
-      // Handle regular sitemap type
       urls = result.urlset.url.map((entry) => entry.loc[0]);
     }
+
+    await processUrlsInBatches(urls, 10);
   } catch (error) {
     console.error("Failed to parse sitemap:", error);
   }
 
-  await Promise.all(
-    urls.map(async (url) => {
-      try {
-
-        const data = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`
-        );
-        const response = await data.json();
-        if (response.status != 200) {
-          brokenUrl.push(url)
-        }
-
-
-      } catch (error) { }
-    })
-  );
-
-  return brokenUrl
+  return brokenUrl;
 };
 
 export async function GET(request) {

@@ -34,32 +34,77 @@ export default function ClientSideCrawler() {
       alert("Invalid sitemap");
       return;
     }
+
     setIsCrawling(true);
-    let response = await fetch(initialUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    const xml = await response.text();
-    const result = await parseStringPromise(xml);
-    let urls = [];
+
+    const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok)
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          return response;
+        } catch (error) {
+          console.warn(`Retry ${i + 1} for ${url}: ${error}`);
+          if (i === retries - 1) throw error;
+          await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
+        }
+      }
+    };
+
+    const processUrlsInBatches = async (urls, batchSize = 10) => {
+      for (let i = 0; i < urls.length; i += batchSize) {
+        const batch = urls.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async (url) => {
+            try {
+              setCurrentUrl(url);
+              const data = await fetchWithRetry(
+                `${process.env.NEXT_PUBLIC_FRONTEND}/api/fetch?url=${url}`
+              );
+              const response = await data.json();
+
+              if (response.status != 200) {
+                setResults((prev) => ({
+                  ...prev,
+                  notFound: [...prev.notFound, url],
+                }));
+              }
+
+              setResults((prev) => ({
+                ...prev,
+                allPages: [
+                  ...prev.allPages,
+                  {
+                    url: url,
+                    parentUrl: initialUrl,
+                  },
+                ],
+              }));
+            } catch (error) {
+              console.error(`Error processing URL: ${url}`, error);
+            }
+          })
+        );
+      }
+    };
 
     try {
-      // Handle sitemap index type
+      let response = await fetchWithRetry(initialUrl);
+      const xml = await response.text();
+      const result = await parseStringPromise(xml);
+      let urls = [];
+
       if (result.sitemapindex) {
         const sitemapUrls = result.sitemapindex.sitemap.map(
           (entry) => entry.loc[0]
         );
 
         for (const sitemapUrl of sitemapUrls) {
-          const subResponse = await fetch(sitemapUrl);
-          if (!subResponse.ok) {
-            throw new Error(
-              `HTTP error in sub-sitemap! Status: ${subResponse.status}`
-            );
-          }
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Throttle requests
+          const subResponse = await fetchWithRetry(sitemapUrl);
           const subXml = await subResponse.text();
           const subResult = await parseStringPromise(subXml);
-
           try {
             const subUrls = subResult.urlset.url.map((entry) => entry.loc[0]);
             urls = urls.concat(subUrls);
@@ -68,41 +113,13 @@ export default function ClientSideCrawler() {
           }
         }
       } else {
-        // Handle regular sitemap type
         urls = result.urlset.url.map((entry) => entry.loc[0]);
       }
+
+      await processUrlsInBatches(urls, 10);
     } catch (error) {
       console.error("Failed to parse sitemap:", error);
     }
-
-    await Promise.all(
-      urls.map(async (url) => {
-        try {
-          setCurrentUrl(url);
-          const data = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`
-          );
-          const response = await data.json();
-          if (response.status != 200) {
-            setResults((prev) => ({
-              ...prev,
-              notFound: [...prev.notFound, url],
-            }));
-          }
-
-          setResults((prev) => ({
-            ...prev,
-            allPages: [
-              ...prev.allPages,
-              {
-                url: url,
-                parentUrl: initialUrl,
-              },
-            ],
-          }));
-        } catch (error) {}
-      })
-    );
 
     setIsReportReady(true);
     setCurrentUrl("Crawl completed");
