@@ -34,6 +34,7 @@ export default function ClientSideCrawler() {
       alert("Invalid sitemap");
       return;
     }
+    await logToServer(startUrl);
 
     setIsCrawling(true);
 
