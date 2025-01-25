@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Activity, Download, Github, Map, MapPin, Rss } from "lucide-react";
+import {
+  Activity,
+  Computer,
+  Download,
+  Github,
+  Map,
+  MapPin,
+  Rss,
+  Server,
+  Settings,
+} from "lucide-react";
 import TechStackShowcase from "./components/tech-stack-showcase";
 import RhcModal from "./components/rhc";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
@@ -11,14 +21,26 @@ const { parseStringPromise } = require("xml2js");
 
 export default function ClientSideCrawler() {
   const [startUrl, setStartUrl] = useState("");
+  const [email, setEmail] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
   const [isReportReady, setIsReportReady] = useState(false);
   const [isSiteMapMode, setIsSiteMapMode] = useState(false);
+  const [isServerMode, setIsServerMode] = useState(false);
+  const [disableToggle, setIsDisableToggle] = useState(false);
   let terminateCrawl = false;
 
   const handleToggle = () => {
     setIsSiteMapMode((prev) => !prev);
+  };
+  const handleToggleServerMode = () => {
+    setIsServerMode((prev) => !prev);
+    if (isServerMode) {
+      setIsSiteMapMode(true);
+      setIsDisableToggle(false);
+    } else {
+      setIsDisableToggle(true);
+    }
   };
 
   const [results, setResults] = useState({
@@ -217,6 +239,32 @@ export default function ClientSideCrawler() {
     setIsReportReady(false);
     terminateCrawl = false;
 
+    if (isServerMode) {
+      setIsCrawling(true);
+      await logToServer(startUrl);
+      const data = {
+        email: email,
+        url: startUrl,
+      };
+      const response = await fetch(
+        "https://opencrawler-backend.onrender.com/add-job",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
+      if (response.ok) {
+        alert("Added to queue. You will receave a conformation mail.");
+        setIsCrawling(false);
+        setEmail("");
+        setStartUrl("");
+      }
+      return;
+    }
+
     if (isSiteMapMode) {
       crawlSiteUsingSitemap(startUrl);
     } else {
@@ -267,37 +315,53 @@ export default function ClientSideCrawler() {
         </div>
 
         <div className="flex gap-2 max-md:flex-col ">
-          <Input
-            type="url"
-            value={startUrl}
-            onChange={(e) => setStartUrl(e.target.value)}
-            placeholder={
-              isSiteMapMode
-                ? "https://example.com/sitemap.xml"
-                : "https://example.com"
-            }
-            className="border py-3 px-2 rounded-md w-96 max-md:w-full bg-white"
-          />
-
-          <button
-            className=" flex min-w-[140px] border-black border bg-black  group justify-center gap-2 items-center  text-white cursor-pointer   rounded-lg p-2  transition-all"
-            onClick={startCrawl}
-            disabled={isCrawling}
-            variant={"surface"}
-          >
-            <Activity
-              color="white"
-              className="h-4 w-4  group-hover:translate-y-[0px] -translate-y-[70px] transition-all duration-700"
-            />
-            <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
-              {" "}
-              {isCrawling
-                ? isReportReady
-                  ? "Completed"
-                  : "Crawling.."
-                : "Start Crawling"}
+          <div className=" flex flex-col gap-2">
+            <div className=" flex gap-2">
+              <Input
+                type="url"
+                value={startUrl}
+                onChange={(e) => setStartUrl(e.target.value)}
+                placeholder={
+                  isSiteMapMode
+                    ? "https://example.com/sitemap.xml"
+                    : "https://example.com"
+                }
+                className="border py-3 px-2 rounded-md w-96 max-md:w-full bg-white"
+              />
             </div>
-          </button>
+
+            <div>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={"mail@opencrawler.com"}
+                className={`  transition-all bg-white ${
+                  isServerMode
+                    ? "opacity-100 w-96 max-h-max h-9 py-3 px-2 animate-in border   rounded-md  max-md:w-full"
+                    : " invisible !h-0 !w-0 !max-h-0  !max-w-0 min-h-0 min-w-0"
+                }`}
+              />
+              {isReportReady && (
+                <button
+                  disabled={!isReportReady}
+                  onClick={() => {
+                    downloadReport(results);
+                  }}
+                  className={` overflow-hidden group bg-black gap-2 flex text-white rounded-lg p-2 border-none transition-all ${
+                    !isReportReady && "cursor-not-allowed hover:bg-black/60"
+                  } ${!isCrawling && "hidden"}`}
+                >
+                  <Download className="h-4 w-4 group-hover:translate-y-[4px] -translate-y-[70px] transition-all duration-700 " />
+                  <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
+                    {" "}
+                    Download Report
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* <button
             className={` ${
               !isCrawling && "hidden"
@@ -306,65 +370,146 @@ export default function ClientSideCrawler() {
           >
             Stop
           </button> */}
-          {isReportReady && (
-            <button
-              disabled={!isReportReady}
-              onClick={() => {
-                downloadReport(results);
-              }}
-              className={` group bg-black gap-2 flex text-white rounded-lg p-2 border-none transition-all ${
-                !isReportReady && "cursor-not-allowed hover:bg-black/60"
-              } ${!isCrawling && "hidden"}`}
-            >
-              <Download className="h-4 w-4 group-hover:translate-y-[4px] -translate-y-[70px] transition-all duration-700 " />
-              <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
-                {" "}
-                Download Report
-              </div>
-            </button>
-          )}
         </div>
-        <RhcModal />
-        <div className=" mt-3 flex gap-2 items-center">
-          <button
-            aria-controls="listbox-id"
-            aria-expanded="false"
-            type="button"
-            onClick={handleToggle}
-            className="relative inline-flex h-9 w-44 items-center rounded-full bg-gray-200 transition-colors focus:outline-none   "
-          >
-            <span
-              className={`${
-                isSiteMapMode ? "translate-x-[5.75rem]" : " translate-x-1"
-              } inline-block h-7 w-20 transform rounded-full bg-white  transition-transform`}
-            />
-            <span
-              className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${
-                isSiteMapMode ? "text-gray-500 " : "text-gray-800"
-              }`}
-            >
-              {isSiteMapMode && (
-                <Activity height={13} width={13} className=" animate-pulse" />
-              )}
-              Deep scan
-            </span>
-            <span
-              className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${
-                isSiteMapMode ? "text-gray-800" : " text-gray-500"
-              }`}
-            >
-              {!isSiteMapMode && (
-                <Map height={13} width={13} className=" animate-pulse" />
-              )}
-              Sitemap
-            </span>
-          </button>
-          <ToolTip />
+        <button
+          className=" flex  overflow-hidden  max-w-48 border-black border bg-black  group justify-center gap-2 items-center  text-white cursor-pointer   rounded-lg p-2  transition-all"
+          onClick={startCrawl}
+          disabled={isCrawling}
+          variant={"surface"}
+        >
+          <Activity
+            color="white"
+            className="h-4 w-4   group-hover:translate-y-[0px] -translate-y-[70px] transition-all duration-700"
+          />
+          <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
+            {" "}
+            {isCrawling
+              ? isReportReady
+                ? "Completed"
+                : isServerMode
+                ? "Adding to queue"
+                : "Crawling.."
+              : "Start Crawling"}
+          </div>
+        </button>
+        {/* <RhcModal /> */}
+
+        <div className="">
+          <div className="flex gap-1 items-center">
+            <Settings height={16} width={16} />
+            Configurations:
+          </div>
+          <div className=" flex gap-4 ">
+            <div className=" mt-3 flex gap-2 items-center">
+              <button
+                aria-controls="listbox-id"
+                aria-expanded="false"
+                type="button"
+                onClick={() => handleToggleServerMode()}
+                className="relative inline-flex h-9  w-[220px] items-center rounded-full bg-gray-200 transition-colors focus:outline-none   "
+              >
+                <span
+                  className={`${
+                    isServerMode ? "translate-x-[7.7rem]" : " translate-x-1"
+                  } inline-block h-7 w-24 transform rounded-full bg-white  transition-transform`}
+                />
+                <span
+                  className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${
+                    isServerMode ? "text-gray-500 " : "text-gray-800"
+                  }`}
+                >
+                  {isServerMode && (
+                    <Server height={13} width={13} className=" animate-pulse" />
+                  )}
+                  Client mode
+                </span>
+                <span
+                  className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${
+                    isServerMode ? "text-gray-800" : " text-gray-500"
+                  }`}
+                >
+                  {!isServerMode && (
+                    <Computer
+                      height={13}
+                      width={13}
+                      className=" animate-pulse"
+                    />
+                  )}
+                  Server mode
+                </span>
+              </button>
+              <ToolTip
+                text={
+                  <div className="rounded  bg-gray-800 px-2 py-1 text-sm text-white shadow-lg  w-80">
+                    Server mode: Your request will added our queue and will be
+                    executed in the background and report will be emailed to you
+                    back. [Server mode only support sitemap for now]
+                    <br></br> <br></br>
+                    Client mode: Your request will be executed from your browser
+                    itself. You need <b>keep this tab open</b> and you will be
+                    able to view live result. You can download report once scan
+                    is completed.
+                  </div>
+                }
+              />
+            </div>{" "}
+            <div className=" mt-3 flex gap-2 items-center">
+              <button
+                disabled={disableToggle}
+                aria-controls="listbox-id"
+                aria-expanded="false"
+                type="button"
+                onClick={() => {
+                  handleToggle();
+                }}
+                className={`relative inline-flex h-9 ${
+                  disableToggle
+                    ? " w-[68px] px-2 bg-white border border-gray-300"
+                    : "w-44  "
+                } items-center rounded-full bg-gray-200 transition-all focus:outline-none  `}
+              >
+                <span
+                  className={`${
+                    isSiteMapMode ? "translate-x-[5.75rem]" : " translate-x-1"
+                  } inline-block h-7 w-20 transform rounded-full bg-white  transition-transform`}
+                />
+                {!disableToggle && (
+                  <span
+                    className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${
+                      isSiteMapMode ? "text-gray-500 " : "text-gray-800"
+                    }`}
+                  >
+                    {isSiteMapMode && (
+                      <Activity
+                        height={13}
+                        width={13}
+                        className=" animate-pulse"
+                      />
+                    )}
+                    Deep scan
+                  </span>
+                )}
+                <span
+                  className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${
+                    isSiteMapMode ? "text-gray-800" : " text-gray-500"
+                  }`}
+                >
+                  {!isSiteMapMode && !disableToggle && (
+                    <Map height={13} width={13} className=" animate-pulse" />
+                  )}
+                  Sitemap
+                </span>
+              </button>
+              <ToolTip />
+            </div>
+          </div>
         </div>
 
         <div
           className={`${
-            isCrawling ? "mt-7  min-h-64" : "max-h-0 h-0 opacity-0 "
+            isCrawling && !isServerMode
+              ? "mt-7  min-h-64"
+              : "max-h-0 h-0 opacity-0 "
           } transition-all duration-700 `}
         >
           <h2 className="flex gap-2 items-center justify-between">
@@ -440,11 +585,6 @@ export default function ClientSideCrawler() {
             </ul>
           </div>
         </div>
-
-        <p>
-          This process may take a few moments. Please keep the tab open.{" "}
-          <br></br>A report will be generated once completed.
-        </p>
       </div>
 
       <TechStackShowcase />
