@@ -30,6 +30,10 @@ export default function ClientSideCrawler() {
   const [disableToggle, setIsDisableToggle] = useState(false);
   let terminateCrawl = false;
 
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND}/allhamullilah`);
+  }, []);
+
   const handleToggle = () => {
     setIsSiteMapMode((prev) => !prev);
   };
