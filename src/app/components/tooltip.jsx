@@ -9,8 +9,7 @@ export function ToolTip({
       Deep Scan: The crawler starts at the given domain and recursively follows
       all links, covering the entire website.
       <br></br>
-      Sitemap: The crawler scans only the links listed in the sitemap.[Server
-      mode only support sitemap for now]
+      Sitemap: The crawler scans only the links listed in the sitemap.
     </div>
   ),
 }) {
