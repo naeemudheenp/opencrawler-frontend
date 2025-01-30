@@ -26,7 +26,7 @@ export default function ClientSideCrawler() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [isReportReady, setIsReportReady] = useState(false);
   const [isSiteMapMode, setIsSiteMapMode] = useState(false);
-  const [isServerMode, setIsServerMode] = useState(false);
+  const [isServerMode, setIsServerMode] = useState(true);
 
   let terminateCrawl = false;
 
@@ -317,7 +317,7 @@ export default function ClientSideCrawler() {
 
         <div className="flex gap-2 max-md:flex-col ">
           <div className=" flex flex-col gap-2">
-            <div className=" flex gap-2">
+            <div className="  gap-2">
               <Input
                 type="url"
                 value={startUrl}
