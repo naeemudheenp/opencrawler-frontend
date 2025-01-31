@@ -46,6 +46,10 @@ export default function Test() {
         <div>
           This page is created for testing the open crawler testing purposes
         </div>
+        Total links: 10
+        Total broken links: 8 (unique:7)
+        Total duplicate links: 2
+        Total valid links: 2
 
         <div>
           {" "}
