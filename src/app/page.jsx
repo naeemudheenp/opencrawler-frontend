@@ -30,8 +30,16 @@ export default function ClientSideCrawler() {
 
   let terminateCrawl = false;
 
+  const checkServerStatus = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/allhamullilah`);
+  }
+
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND}/allhamullilah`);
+    try {
+      checkServerStatus();
+    } catch (error) {
+      console.log(error, "error");
+    }
   }, []);
 
   const handleToggle = () => {
