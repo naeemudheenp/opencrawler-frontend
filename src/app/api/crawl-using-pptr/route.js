@@ -28,57 +28,58 @@ async function getBrowser() {
 }
 
 async function checkPageStatusAndGetLinks(url) {
-  let statusCode;
-  let links = [];
+  let statusCode = 404;
+  let links: string[] = [];
 
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
-
     const response = await page.goto(url, { waitUntil: "networkidle0" });
-    statusCode = response && response.status() === 200 ? 200 : 404;
+    statusCode = response?.status() || 404;
 
     if (statusCode === 200) {
-      const parsedUrl = new URL(url);
-      const domain = parsedUrl.hostname;
+      const origin = new URL(url).origin;
 
-      links = await page.$$eval(
-        "a",
-        (anchors, domain) => {
-          return anchors
-            .filter((anchor) => {
-              const href = anchor.href;
-              const style = window.getComputedStyle(anchor);
-              const isVisible =
-                anchor.offsetParent !== null &&
-                style.display !== "none" &&
-                style.visibility !== "hidden" &&
-                style.opacity !== "0";
+      links = await page.evaluate((origin) => {
+        const anchors = Array.from(document.querySelectorAll("a"));
+        const results: string[] = [];
 
-              const isObfuscated =
-                href.includes("/cdn-cgi/l/email-protection") ||
-                anchor.hasAttribute("data-cfemail");
+        for (const anchor of anchors) {
+          const href = anchor.getAttribute("href") || "";
+          if (!href || href.startsWith("javascript:") || href.startsWith("#")) continue;
 
-              try {
-                const linkDomain = new URL(href).hostname;
-                return (
-                  isVisible &&
-                  !isObfuscated &&
-                  linkDomain === domain &&
-                  href.trim() !== ""
-                );
-              } catch {
-                return false;
-              }
-            })
-            .map((anchor) => anchor.href);
-        },
-        domain
-      );
+          // Cloudflare email protection checks
+          if (href.includes("/cdn-cgi/l/email-protection")) continue;
+          if (anchor.hasAttribute("data-cfemail")) continue;
+
+          // Visibility checks
+          const style = window.getComputedStyle(anchor);
+          const rect = anchor.getBoundingClientRect();
+          const isVisible =
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            style.opacity !== "0" &&
+            rect.width > 0 &&
+            rect.height > 0;
+
+          if (!isVisible) continue;
+
+          try {
+            const absoluteUrl = new URL(href, window.location.href).href;
+            if (absoluteUrl.startsWith(origin)) {
+              results.push(absoluteUrl.split("#")[0].replace(/\/$/, ""));
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+
+        return Array.from(new Set(results)); // deduplicate
+      }, origin);
     }
 
     await page.close();
-  } catch (error) {
+  } catch (err) {
     statusCode = 404;
   }
 
