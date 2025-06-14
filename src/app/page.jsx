@@ -158,57 +158,72 @@ export default function ClientSideCrawler() {
     setCurrentUrl("Crawl completed");
   };
 
+  const normalizeUrl = (url) => {
+    try {
+      const u = new URL(url, location.origin);
+      u.hash = '';
+      u.search = '';
+      return u.href.replace(/\/$/, '');
+    } catch {
+      return url;
+    }
+  };
+
   const crawlSite = async (initialUrl) => {
     if (!isValidURL(initialUrl)) {
-      alert("Invalid url");
+      alert("Invalid URL");
       return;
     }
+
     try {
       setIsCrawling(true);
-      await logToServer(startUrl);
-      const visited = new Set();
-      const queue = [initialUrl];
-      const domain = new URL(initialUrl).origin;
-      const crawlPage = async (url) => {
-        let data;
-        let response;
-        try {
-          data = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`
-          );
-          response = await data.json();
-        } catch (error) {
-          return;
-        }
-        setCurrentUrl(url);
-        if (response.status != 200) {
-          setResults((prev) => ({
-            ...prev,
-            notFound: [...prev.notFound, url],
-          }));
-        }
-        const text = await response.text;
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
+      await logToServer(initialUrl);
 
-        let links = Array.from(doc.querySelectorAll("[href]"))
-          .map((link) => link.href)
-          .filter(
-            (href) =>
-              typeof href === "string" &&
-              (href.startsWith(domain) || href.startsWith("/"))
-          );
+      const visited = new Set();
+      const queue = [normalizeUrl(initialUrl)];
+      const domain = new URL(initialUrl).origin;
+
+      const crawlPage = async (url) => {
+        if (visited.has(url)) return;
+        visited.add(url);
+        setCurrentUrl(url);
+
+        let links = [];
+
+        try {
+          const data = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`);
+          const response = await data.json();
+
+          if (response.status !== 200) {
+            setResults((prev) => ({
+              ...prev,
+              notFound: [...prev.notFound, url],
+            }));
+          }
+
+          const text = await response.text;
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, "text/html");
+
+          links = Array.from(doc.querySelectorAll("a[href]"))
+            .map((el) => el.getAttribute("href"))
+            .map((href) => new URL(href, url).href)
+            .map(normalizeUrl)
+            .filter((href) => href.startsWith(domain));
+        } catch (error) {
+          console.warn(`DOM parse failed for ${url}, trying Puppeteer fallback...`);
+        }
 
         if (!links.length) {
           try {
-            const response = await fetch(`/api/crawl-using-pptr?url=${url}`);
-
+            const response = await fetch(`/api/crawl-using-pptr?url=${encodeURIComponent(url)}`);
             const data = await response.json();
-            links = data.links;
+            links = data.links?.map(normalizeUrl) || [];
           } catch (error) {
-            links = [];
+            console.error("Fallback fetch failed", error);
           }
         }
+
         for (const link of links) {
           if (!visited.has(link)) {
             queue.push(link);
@@ -222,24 +237,21 @@ export default function ClientSideCrawler() {
                 },
               ],
             }));
-            visited.add(link);
           }
         }
       };
 
       while (queue.length > 0) {
         const url = queue.shift();
-
-        if (!terminateCrawl) {
-          await crawlPage(url);
-        } else {
-          return;
-        }
+        if (terminateCrawl) return;
+        await crawlPage(url);
       }
+
       setIsReportReady(true);
       setCurrentUrl("Crawl completed");
     } catch (error) {
-      alert("Make sure that internet is available.", error);
+      alert("Make sure that internet is available.");
+      console.error(error);
     }
   };
 
@@ -252,11 +264,13 @@ export default function ClientSideCrawler() {
     if (isServerMode) {
       setIsCrawling(true);
       await logToServer(startUrl);
+
       const data = {
-        email: email,
+        email,
         url: startUrl,
-        mode: isSiteMapMode ? "sitemap" : "deepscan"
+        mode: isSiteMapMode ? "sitemap" : "deepscan",
       };
+
       const response = await fetch(
         "https://opencrawler-backend.onrender.com/add-job",
         {
@@ -267,8 +281,9 @@ export default function ClientSideCrawler() {
           body: JSON.stringify(data),
         }
       );
+
       if (response.ok) {
-        alert("Added to queue. You will receave a conformation mail.");
+        alert("Added to queue. You will receive a confirmation mail.");
         setIsCrawling(false);
         setEmail("");
         setStartUrl("");
