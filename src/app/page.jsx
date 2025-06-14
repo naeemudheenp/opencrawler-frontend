@@ -17,6 +17,7 @@ import RhcModal from "./components/rhc";
 import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
 import { ToolTip } from "../app/components/tooltip";
 import { Input } from "@chakra-ui/react";
+import Link from "next/link";
 const { parseStringPromise } = require("xml2js");
 
 export default function ClientSideCrawler() {
@@ -399,6 +400,7 @@ export default function ClientSideCrawler() {
               : "Start Crawling"}
           </div>
         </button>
+
         {/* <RhcModal /> */}
 
         <div className="">
@@ -581,6 +583,13 @@ export default function ClientSideCrawler() {
           </div>
         </div>
       </div>
+      <Link
+        href="/stories/integrate-with-slack"
+        className=" cursor-pointer underline z-30 relative"
+      >
+        Integrate OpenCrawler to slack and get notifed when broken links are
+        found.
+      </Link>
 
       <TechStackShowcase />
     </section>

@@ -16,6 +16,16 @@ export default function StoriesHome() {
 
       <div className="flex flex-col w-full mt-6 gap-4">
         <a
+          href="/stories/integrate-with-slack"
+          className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
+        >
+          Integrate OpenCrawler to slack and get notifed when broken links are
+          found.
+          <div className=" group-hover:rotate-[340deg] transition-all duration-500">
+            <ArrowRightCircleIcon />
+          </div>
+        </a>
+        <a
           href="/stories/improve-seo-with-opencrawler"
           className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
         >
