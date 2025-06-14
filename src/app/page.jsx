@@ -200,8 +200,7 @@ export default function ClientSideCrawler() {
               notFound: [...prev.notFound, url],
             }));
           }
-
-          const text = await response.text;
+          const text = await response.text();
           const parser = new DOMParser();
           const doc = parser.parseFromString(text, "text/html");
 
