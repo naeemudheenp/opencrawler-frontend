@@ -35,7 +35,7 @@ async function checkPageStatusAndGetLinks(url) {
     const page = await browser.newPage();
 
     // Wait for the page to load completely
-    const response = await page.goto(url, { waitUntil: "networkidle0" });
+    const response = await page.goto(url, { waitUntil: "domcontentloaded" });
     statusCode = response && response.status() === 200 ? 200 : 404;
 
     // Fetch all anchor tags if the page loaded successfully
