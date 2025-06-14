@@ -29,7 +29,7 @@ async function getBrowser() {
 
 async function checkPageStatusAndGetLinks(url) {
   let statusCode = 404;
-  let links: string[] = [];
+  let links = [];
 
   try {
     const browser = await getBrowser();
@@ -42,7 +42,7 @@ async function checkPageStatusAndGetLinks(url) {
 
       links = await page.evaluate((origin) => {
         const anchors = Array.from(document.querySelectorAll("a"));
-        const results: string[] = [];
+        const results = [];
 
         for (const anchor of anchors) {
           const href = anchor.getAttribute("href") || "";
