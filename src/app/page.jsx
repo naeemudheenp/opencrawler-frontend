@@ -49,7 +49,7 @@ export default function ClientSideCrawler() {
   const handleToggleServerMode = () => {
     setIsServerMode((prev) => !prev);
     if (isServerMode) {
-      setIsSiteMapMode(true);
+      setIsSiteMapMode(false);
     }
   };
 
@@ -467,7 +467,7 @@ export default function ClientSideCrawler() {
                 onClick={() => {
                   handleToggle();
                 }}
-                className={`relative inline-flex h-9  w-44  
+                className={`relative inline-flex h-9  w-[88px]
                   items-center rounded-full bg-gray-200 transition-all focus:outline-none  `}
               >
                 <span
@@ -489,7 +489,7 @@ export default function ClientSideCrawler() {
                   Deep scan
                 </span>
 
-                <span
+                {/* <span
                   className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${isSiteMapMode ? "text-gray-800" : " text-gray-500"
                     }`}
                 >
@@ -497,7 +497,7 @@ export default function ClientSideCrawler() {
                     <Map height={13} width={13} className=" animate-pulse" />
                   )}
                   Sitemap
-                </span>
+                </span> */}
               </button>
               <ToolTip />
             </div>
