@@ -30,34 +30,48 @@ async function getBrowser() {
 async function checkPageStatusAndGetLinks(url) {
   let statusCode;
   let links = [];
+
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
 
-    // Wait for the page to load completely
-    const response = await page.goto(url, { waitUntil: "domcontentloaded" });
+    const response = await page.goto(url, { waitUntil: "networkidle0" });
     statusCode = response && response.status() === 200 ? 200 : 404;
 
-    // Fetch all anchor tags if the page loaded successfully
     if (statusCode === 200) {
-      // Extract the domain from the input URL
       const parsedUrl = new URL(url);
       const domain = parsedUrl.hostname;
 
-      // Fetch all links and filter them by domain
       links = await page.$$eval(
         "a",
         (anchors, domain) => {
           return anchors
-            .map((anchor) => anchor.href)
-            .filter((href) => {
+            .filter((anchor) => {
+              const href = anchor.href;
+              const style = window.getComputedStyle(anchor);
+              const isVisible =
+                anchor.offsetParent !== null &&
+                style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                style.opacity !== "0";
+
+              const isObfuscated =
+                href.includes("/cdn-cgi/l/email-protection") ||
+                anchor.hasAttribute("data-cfemail");
+
               try {
                 const linkDomain = new URL(href).hostname;
-                return linkDomain === domain; // Only include links from the same domain
-              } catch (e) {
-                return false; // Ignore invalid or malformed URLs
+                return (
+                  isVisible &&
+                  !isObfuscated &&
+                  linkDomain === domain &&
+                  href.trim() !== ""
+                );
+              } catch {
+                return false;
               }
-            });
+            })
+            .map((anchor) => anchor.href);
         },
         domain
       );
@@ -67,12 +81,14 @@ async function checkPageStatusAndGetLinks(url) {
   } catch (error) {
     statusCode = 404;
   }
+
   return { statusCode, links };
 }
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
+
   if (!url) {
     return new Response(
       JSON.stringify({ error: "URL parameter is required" }),
@@ -84,13 +100,9 @@ export async function GET(request) {
   }
 
   const { statusCode, links } = await checkPageStatusAndGetLinks(url);
-  return new Response(
-    JSON.stringify({
-      links,
-    }),
-    {
-      status: statusCode,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+
+  return new Response(JSON.stringify({ links }), {
+    status: statusCode,
+    headers: { "Content-Type": "application/json" },
+  });
 }
