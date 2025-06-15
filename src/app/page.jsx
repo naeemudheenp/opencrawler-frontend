@@ -605,7 +605,7 @@ export default function ClientSideCrawler() {
         found.
       </Link>
 
-      <TechStackShowcase />
+      {/* <TechStackShowcase /> */}
     </section>
   );
 }
