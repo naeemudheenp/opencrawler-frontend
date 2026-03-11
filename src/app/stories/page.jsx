@@ -53,6 +53,39 @@ export default function StoriesHome() {
             <ArrowRightCircleIcon />
           </div>
         </a>
+        
+        {/* Productivity & Tools Section */}
+        <div className="mt-8 mb-4">
+          <h2 className="text-xl font-bold text-gray-700">Productivity & Tools</h2>
+        </div>
+        
+        <a
+          href="/stories/best-productivity-tools-developers"
+          className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
+        >
+          Best Productivity Tools for Developers in 2024
+          <div className=" group-hover:rotate-[340deg] transition-all duration-500">
+            <ArrowRightCircleIcon />
+          </div>
+        </a>
+        <a
+          href="/stories/journaling-for-developers"
+          className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
+        >
+          Why Every Developer Should Keep a Work Journal
+          <div className=" group-hover:rotate-[340deg] transition-all duration-500">
+            <ArrowRightCircleIcon />
+          </div>
+        </a>
+        <a
+          href="/stories/simple-tools-complex-problems"
+          className="group  transition-all duration-300 border  hover:underline rounded-md hover:shadow px-8 py-6 flex gap-2 justify-between text-2xl  items-center"
+        >
+          Simple Tools for Complex Problems: The Minimalist Developer Toolkit
+          <div className=" group-hover:rotate-[340deg] transition-all duration-500">
+            <ArrowRightCircleIcon />
+          </div>
+        </a>
       </div>
 
       {/* Footer Section */}

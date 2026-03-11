@@ -597,13 +597,69 @@ export default function ClientSideCrawler() {
           </div>
         </div>
       </div>
-      <Link
-        href="/stories/integrate-with-slack"
-        className=" cursor-pointer underline z-30 relative"
-      >
-        Integrate OpenCrawler to slack and get notifed when broken links are
-        found.
-      </Link>
+      
+      {/* Links Section */}
+      <div className="flex flex-col items-center gap-3 mt-2">
+        <Link
+          href="/stories/integrate-with-slack"
+          className="cursor-pointer underline z-30 relative text-gray-700 hover:text-black"
+        >
+          Integrate OpenCrawler to slack and get notified when broken links are found.
+        </Link>
+        <Link
+          href="/stories"
+          className="cursor-pointer underline z-30 relative text-gray-700 hover:text-black"
+        >
+          Read our blog for tips on SEO, productivity, and developer tools →
+        </Link>
+      </div>
+
+      {/* Disclaimer for Large Websites */}
+      <div className="mt-6 mb-8 max-w-2xl mx-auto p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-amber-600 text-sm font-bold">!</span>
+          </div>
+          <div>
+            <p className="text-sm text-amber-800 font-medium mb-1">
+              Large Website? Run it locally
+            </p>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              For websites with thousands of pages, the browser may run out of resources. 
+              Clone our GitHub repositories and run the crawler locally for better performance:
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <a
+                href="https://github.com/naeemudheenp/opencrawler"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
+              >
+                <Github className="h-3 w-3" />
+                opencrawler
+              </a>
+              <a
+                href="https://github.com/naeemudheenp/opencrawler-frontend"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
+              >
+                <Github className="h-3 w-3" />
+                opencrawler-frontend
+              </a>
+              <a
+                href="https://github.com/naeemudheenp/opencrawler-backend"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
+              >
+                <Github className="h-3 w-3" />
+                opencrawler-backend
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* <TechStackShowcase /> */}
     </section>
