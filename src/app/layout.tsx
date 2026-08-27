@@ -92,7 +92,7 @@ export default function RootLayout({
 `}</Script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white flex justify-center items-center !text-black pt-14`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black flex justify-center items-center text-zinc-100 min-h-screen`}
       >
         <OpenNotepadBanner />
         <Provider>{children}</Provider>

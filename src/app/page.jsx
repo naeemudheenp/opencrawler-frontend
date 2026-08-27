@@ -1,667 +1,174 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Activity,
-  Computer,
-  Download,
-  Github,
-  Map,
-  MapPin,
-  Rss,
-  Server,
-  Settings,
-} from "lucide-react";
-import TechStackShowcase from "./components/tech-stack-showcase";
-import RhcModal from "./components/rhc";
-import { logToServer, isValidURL, downloadReport } from "@/app/helpers";
-import { ToolTip } from "../app/components/tooltip";
-import { Input } from "@chakra-ui/react";
-import Link from "next/link";
-const { parseStringPromise } = require("xml2js");
+import React, { useState } from "react";
+import { Terminal, Copy, Check, Github, Linkedin } from "lucide-react";
 
-export default function ClientSideCrawler() {
-  const [startUrl, setStartUrl] = useState("");
-  const [email, setEmail] = useState("");
-  const [currentUrl, setCurrentUrl] = useState("");
-  const [isCrawling, setIsCrawling] = useState(false);
-  const [isReportReady, setIsReportReady] = useState(false);
-  const [isSiteMapMode, setIsSiteMapMode] = useState(false);
-  const [isServerMode, setIsServerMode] = useState(true);
+export default function DarkTerminalLanding() {
+  const [targetUrl, setTargetUrl] = useState("https://example.com");
+  const [puppeteer, setPuppeteer] = useState(false);
+  const [delay, setDelay] = useState("200");
+  const [maxPages, setMaxPages] = useState("500");
+  const [jsonOutput, setJsonOutput] = useState(false);
 
-  let terminateCrawl = false;
+  const [copied, setCopied] = useState(false);
 
-  const checkServerStatus = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/allhamullilah`);
-  }
-
-  useEffect(() => {
-    try {
-      checkServerStatus();
-    } catch (error) {
-      console.log(error, "error");
-    }
-  }, []);
-
-  const handleToggle = () => {
-    setIsSiteMapMode((prev) => !prev);
-  };
-  const handleToggleServerMode = () => {
-    setIsServerMode((prev) => !prev);
-    if (isServerMode) {
-      setIsSiteMapMode(false);
-    }
+  const buildCommand = () => {
+    let cmd = `npx opencrawler ${targetUrl.trim() || "https://example.com"}`;
+    if (puppeteer) cmd += " --puppeteer";
+    if (delay && parseInt(delay, 10) > 0) cmd += ` --delay ${delay}`;
+    if (maxPages && parseInt(maxPages, 10) !== 500) cmd += ` --max-pages ${maxPages}`;
+    if (jsonOutput) cmd += " --json";
+    return cmd;
   };
 
-  const [results, setResults] = useState({
-    notFound: [],
-    allPages: [],
-    parentUrls: [],
-  });
+  const command = buildCommand();
 
-  const crawlSiteUsingSitemap = async (initialUrl) => {
-    const parsedUrl = new URL(initialUrl);
-    const isSitemap = parsedUrl.pathname.endsWith(".xml");
-    if (!isSitemap) {
-      alert("Invalid sitemap");
-      return;
-    }
-    await logToServer(startUrl);
-
-    setIsCrawling(true);
-
-    const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(url);
-          if (!response.ok)
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          return response;
-        } catch (error) {
-          console.warn(`Retry ${i + 1} for ${url}: ${error}`);
-          if (i === retries - 1) throw error;
-          await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
-        }
-      }
-    };
-
-    const processUrlsInBatches = async (urls, batchSize = 10) => {
-      for (let i = 0; i < urls.length; i += batchSize) {
-        const batch = urls.slice(i, i + batchSize);
-        await Promise.all(
-          batch.map(async (url) => {
-            try {
-              setCurrentUrl(url);
-              const data = await fetchWithRetry(
-                `${process.env.NEXT_PUBLIC_FRONTEND}/api/fetch?url=${url}`
-              );
-              const response = await data.json();
-
-              if (response.status != 200) {
-                setResults((prev) => ({
-                  ...prev,
-                  notFound: [...prev.notFound, url],
-                }));
-              }
-
-              setResults((prev) => ({
-                ...prev,
-                allPages: [
-                  ...prev.allPages,
-                  {
-                    url: url,
-                    parentUrl: initialUrl,
-                  },
-                ],
-              }));
-            } catch (error) {
-              console.error(`Error processing URL: ${url}`, error);
-            }
-          })
-        );
-      }
-    };
-
-    try {
-      let response = await fetchWithRetry(initialUrl);
-      const xml = await response.text();
-      const result = await parseStringPromise(xml);
-      let urls = [];
-
-      if (result.sitemapindex) {
-        const sitemapUrls = result.sitemapindex.sitemap.map(
-          (entry) => entry.loc[0]
-        );
-
-        for (const sitemapUrl of sitemapUrls) {
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Throttle requests
-          const subResponse = await fetchWithRetry(sitemapUrl);
-          const subXml = await subResponse.text();
-          const subResult = await parseStringPromise(subXml);
-          try {
-            const subUrls = subResult.urlset.url.map((entry) => entry.loc[0]);
-            urls = urls.concat(subUrls);
-          } catch {
-            console.warn(`No valid URLs found in ${sitemapUrl}`);
-          }
-        }
-      } else {
-        urls = result.urlset.url.map((entry) => entry.loc[0]);
-      }
-
-      await processUrlsInBatches(urls, 10);
-    } catch (error) {
-      console.error("Failed to parse sitemap:", error);
-    }
-
-    setIsReportReady(true);
-    setCurrentUrl("Crawl completed");
-  };
-
-  const normalizeUrl = (url) => {
-    try {
-      const u = new URL(url, location.origin);
-      u.hash = '';
-      u.search = '';
-      return u.href.replace(/\/$/, '');
-    } catch {
-      return url;
-    }
-  };
-
-  const crawlSite = async (initialUrl) => {
-    if (!isValidURL(initialUrl)) {
-      alert("Invalid URL");
-      return;
-    }
-
-    try {
-      setIsCrawling(true);
-      await logToServer(initialUrl);
-
-      const visited = new Set();
-      const queue = [normalizeUrl(initialUrl)];
-      const domain = new URL(initialUrl).origin;
-
-      const crawlPage = async (url) => {
-        if (visited.has(url)) return;
-        visited.add(url);
-        setCurrentUrl(url);
-
-        let links = [];
-
-        try {
-          const data = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/get-page-status?url=${url}`);
-          const response = await data.json();
-
-          if (response.status !== 200) {
-            setResults((prev) => ({
-              ...prev,
-              notFound: [...prev.notFound, url],
-            }));
-          }
-          const text = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(text, "text/html");
-
-          links = Array.from(doc.querySelectorAll("a[href]"))
-            .map((el) => el.getAttribute("href"))
-            .map((href) => new URL(href, url).href)
-            .map(normalizeUrl)
-            .filter((href) => href.startsWith(domain));
-        } catch (error) {
-          console.warn(`DOM parse failed for ${url}, trying Puppeteer fallback...`);
-        }
-
-        if (!links.length) {
-          try {
-            const response = await fetch(`/api/crawl-using-pptr?url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            links = data.links?.map(normalizeUrl) || [];
-          } catch (error) {
-            console.error("Fallback fetch failed", error);
-          }
-        }
-
-        for (const link of links) {
-          if (!visited.has(link)) {
-            queue.push(link);
-            setResults((prev) => ({
-              ...prev,
-              allPages: [
-                ...prev.allPages,
-                {
-                  url: link,
-                  parentUrl: url,
-                },
-              ],
-            }));
-          }
-        }
-      };
-
-      while (queue.length > 0) {
-        const url = queue.shift();
-        if (terminateCrawl) return;
-        await crawlPage(url);
-      }
-
-      setIsReportReady(true);
-      setCurrentUrl("Crawl completed");
-    } catch (error) {
-      alert("Make sure that internet is available.");
-      console.error(error);
-    }
-  };
-
-  const startCrawl = async () => {
-    setResults({ notFound: [], allPages: [], parentUrls: [] });
-    setCurrentUrl("");
-    setIsReportReady(false);
-    terminateCrawl = false;
-
-    if (isServerMode) {
-      setIsCrawling(true);
-      await logToServer(startUrl);
-
-      const data = {
-        email,
-        url: startUrl,
-        mode: isSiteMapMode ? "sitemap" : "deepscan",
-      };
-
-      const response = await fetch(
-        "https://opencrawler-backend.onrender.com/add-job",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
-
-      if (response.ok) {
-        alert("Added to queue. You will receive a confirmation mail.");
-        setIsCrawling(false);
-        setEmail("");
-        setStartUrl("");
-      }
-      return;
-    }
-
-    if (isSiteMapMode) {
-      crawlSiteUsingSitemap(startUrl);
-    } else {
-      crawlSite(startUrl);
-    }
-  };
-  const stopCrawl = async () => {
-    setResults({ notFound: [], allPages: [], parentUrls: [] });
-    terminateCrawl = true;
-    setCurrentUrl("");
-    setIsCrawling(false);
-    setResults({ notFound: [], allPages: [], parentUrls: [] });
+  const handleCopy = () => {
+    navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <section className="xl:px-20 container bg-white xl:pt-8 flex justify-center items-center w-full h-full  text-black flex-col gap-3 ">
-      <div
-        className={`w-full border border-gray-300   rounded-2xl p-6 flex flex-col gap-4 mt-32 bg-white/80 backdrop-blur-xl  shadow-lg  ${isCrawling && !isReportReady && "animate-gradient-shadow"
-          }`}
-      >
-        <div className="flex flex-col gap-2 ">
-          <h1 className="font-bold text-3xl text-black flex items-center gap-2">
-            openCrawler
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 w-full flex flex-col items-center justify-between py-12 px-4 sm:px-6 font-mono selection:bg-emerald-500 selection:text-black">
+      {/* Background terminal matrix glow effect */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950/20 via-transparent to-transparent pointer-events-none -z-10" />
+
+      <div className="max-w-2xl w-full my-auto space-y-6">
+        {/* Terminal Header Tag with Github & Linkedin Icons */}
+        <div className="flex items-center justify-between text-xs text-zinc-500 border-b border-zinc-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-emerald-400" />
+            <span className="text-zinc-300 font-semibold">openCrawler CLI v1.2.0</span>
+          </div>
+          <div className="flex items-center gap-3">
             <a
-              href="https://github.com/naeemudheenp/openCrawler-public-"
+              href="https://github.com/naeemudheenp/opencrawler-cli"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors"
-              aria-label="View project on GitHub"
+              className="text-zinc-400 hover:text-emerald-400 transition-colors"
+              aria-label="GitHub"
             >
-              <Github className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
+              <Github className="w-4 h-4" />
             </a>
             <a
-              href="/stories/"
+              href="https://www.linkedin.com/in/naeemudheenp/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors"
-              aria-label="Stories"
+              className="text-zinc-400 hover:text-cyan-400 transition-colors"
+              aria-label="LinkedIn"
             >
-              <Rss className="h-6 w-6 hover:border-black hover:bg-white transition-all" />
+              <Linkedin className="w-4 h-4" />
             </a>
+          </div>
+        </div>
+
+        {/* Main Title Banner */}
+        <div className="space-y-2">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <span className="text-emerald-400">$</span> npx opencrawler
           </h1>
-          <p className=" font-normal text-gray-500">
-            Scan the entire website for 404 (broken) pages and their parent
-            pages efficiently.
+          <p className="text-zinc-400 text-sm font-sans max-w-xl">
+            Fast, zero-config 404 broken link scanner with request frequency throttling & parent link tracing right from your terminal.
           </p>
         </div>
 
-        <div className="flex gap-2 max-md:flex-col ">
-          <div className=" flex flex-col gap-2">
-            <div className="  gap-2">
-              <Input
-                type="url"
-                value={startUrl}
-                onChange={(e) => setStartUrl(e.target.value)}
-                placeholder={
-                  isSiteMapMode
-                    ? "https://example.com/sitemap.xml"
-                    : "https://example.com"
-                }
-                className="border py-3 px-2 rounded-md w-96 max-md:w-full bg-white"
-              />
-            </div>
-
-            <div>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={"mail@opencrawler.com"}
-                className={`  transition-all bg-white ${isServerMode
-                  ? "opacity-100 w-96 max-h-max h-9 py-3 px-2 animate-in border   rounded-md  max-md:w-full"
-                  : " invisible !h-0 !w-0 !max-h-0  !max-w-0 min-h-0 min-w-0"
-                  }`}
-              />
-              {isReportReady && (
-                <button
-                  disabled={!isReportReady}
-                  onClick={() => {
-                    downloadReport(results);
-                  }}
-                  className={` overflow-hidden group bg-black gap-2 flex text-white rounded-lg p-2 border-none transition-all ${!isReportReady && "cursor-not-allowed hover:bg-black/60"
-                    } ${!isCrawling && "hidden"}`}
-                >
-                  <Download className="h-4 w-4 group-hover:translate-y-[4px] -translate-y-[70px] transition-all duration-700 " />
-                  <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
-                    {" "}
-                    Download Report
-                  </div>
-                </button>
-              )}
-            </div>
+        {/* Prominent Stat Badge */}
+        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-zinc-950 border border-emerald-500/40 rounded-xl px-4 py-3 text-xs font-mono shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="text-zinc-400 font-sans text-xs">Total Audit Capacity:</span>
+            <span className="text-emerald-400 font-bold text-sm tracking-wide">145 Unique URLs Scanned</span>
           </div>
-
-          {/* <button
-            className={` ${
-              !isCrawling && "hidden"
-            } bg-black/60 hover:bg-black text-white rounded-lg p-2 border-none transition-all`}
-            onClick={stopCrawl}
-          >
-            Stop
-          </button> */}
-        </div>
-        <button
-          className=" flex  overflow-hidden  max-w-48 border-black border bg-black  group justify-center gap-2 items-center  text-white cursor-pointer   rounded-lg p-2  transition-all"
-          onClick={startCrawl}
-          disabled={isCrawling}
-          variant={"surface"}
-        >
-          <Activity
-            color="white"
-            className="h-4 w-4   group-hover:translate-y-[0px] -translate-y-[70px] transition-all duration-700"
-          />
-          <div className=" -translate-x-4 group-hover:translate-x-0 transition-all duration-700">
-            {" "}
-            {isCrawling
-              ? isReportReady
-                ? "Completed"
-                : isServerMode
-                  ? "Adding to queue"
-                  : "Crawling.."
-              : "Start Crawling"}
-          </div>
-        </button>
-
-        {/* <RhcModal /> */}
-
-        <div className="">
-          <div className="flex gap-1 items-center">
-            <Settings height={16} width={16} />
-            Configurations:
-          </div>
-          <div className=" flex gap-4 ">
-            <div className=" mt-3 flex gap-2 items-center">
-              <button
-                aria-controls="listbox-id"
-                aria-expanded="false"
-                type="button"
-                onClick={() => handleToggleServerMode()}
-                className="relative inline-flex h-9  w-[220px] items-center rounded-full bg-gray-200 transition-colors focus:outline-none   "
-              >
-                <span
-                  className={`${isServerMode ? "translate-x-[7.7rem]" : " translate-x-1"
-                    } inline-block h-7 w-24 transform rounded-full bg-white  transition-transform`}
-                />
-                <span
-                  className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${isServerMode ? "text-gray-500 " : "text-gray-800"
-                    }`}
-                >
-                  {isServerMode && (
-                    <Server height={13} width={13} className=" animate-pulse" />
-                  )}
-                  Client mode
-                </span>
-                <span
-                  className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${isServerMode ? "text-gray-800" : " text-gray-500"
-                    }`}
-                >
-                  {!isServerMode && (
-                    <Computer
-                      height={13}
-                      width={13}
-                      className=" animate-pulse"
-                    />
-                  )}
-                  Server mode
-                </span>
-              </button>
-              <ToolTip
-                text={
-                  <div className="rounded  bg-gray-800 px-2 py-1 text-sm text-white shadow-lg  w-80">
-                    Server mode: Your request will added our queue and will be
-                    executed in the background and report will be emailed to you
-                    back.
-                    <br></br> <br></br>
-                    Client mode: Your request will be executed from your browser
-                    itself. You need <b>keep this tab open</b> and you will be
-                    able to view live result. You can download report once scan
-                    is completed.
-                  </div>
-                }
-              />
-            </div>{" "}
-            <div className=" mt-3 flex gap-2 items-center">
-              <button
-                aria-controls="listbox-id"
-                aria-expanded="false"
-                type="button"
-                onClick={() => {
-                  handleToggle();
-                }}
-                className={`relative inline-flex h-9  w-[88px]
-                  items-center rounded-full bg-gray-200 transition-all focus:outline-none  `}
-              >
-                <span
-                  className={`${isSiteMapMode ? "translate-x-[5.75rem]" : " translate-x-1"
-                    } inline-block h-7 w-20 transform rounded-full bg-white  transition-transform`}
-                />
-
-                <span
-                  className={`absolute gap-2 items-center justify-center left-2 text-sm font-medium flex ${isSiteMapMode ? "text-gray-500 " : "text-gray-800"
-                    }`}
-                >
-                  {isSiteMapMode && (
-                    <Activity
-                      height={13}
-                      width={13}
-                      className=" animate-pulse"
-                    />
-                  )}
-                  Deep scan
-                </span>
-
-                {/* <span
-                  className={`absolute gap-2 items-center justify-center right-2 text-sm font-medium flex ${isSiteMapMode ? "text-gray-800" : " text-gray-500"
-                    }`}
-                >
-                  {!isSiteMapMode && (
-                    <Map height={13} width={13} className=" animate-pulse" />
-                  )}
-                  Sitemap
-                </span> */}
-              </button>
-              <ToolTip />
-            </div>
-          </div>
+          <span className="text-emerald-400/80 text-[11px] font-mono font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-900/60 hidden sm:inline">
+            CLI Audit
+          </span>
         </div>
 
-        <div
-          className={`${isCrawling && !isServerMode
-            ? "mt-7  min-h-64"
-            : "max-h-0 h-0 opacity-0 "
-            } transition-all duration-700 `}
-        >
-          <h2 className="flex gap-2 items-center justify-between">
-            <div className="flex gap-2  items-center  xl:w-[50%] flex-nowrap">
-              Currently Crawling: {currentUrl || "example.com"}
-              <div
-                className={`aspect-auto rounded-full p-2 size-2 bg-gradient-to-r from-black/80 to-black/40 animate-spin ${isReportReady && "!hidden"
-                  }`}
-              ></div>
+        {/* Terminal Window Frame */}
+        <div className="bg-zinc-950 rounded-xl border border-zinc-800 shadow-2xl overflow-hidden text-sm">
+          {/* Mac Window Control Bar */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/80 border-b border-zinc-800/80 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+              </div>
+              <span className="ml-2 text-zinc-400 text-[11px]">bash - npx opencrawler</span>
             </div>
-          </h2>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-black font-bold px-3 py-1 rounded transition-all cursor-pointer shadow-md active:scale-95"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? "COPIED!" : "COPY COMMAND"}
+            </button>
+          </div>
 
-          <div className="border border-gray-200 h-auto py-5 my-3 rounded-md ">
-            <div className="flex justify-between px-5">
-              <h3 className=" mb-2">Discovered links</h3>
-              <div className="flex gap-2">
-                <h3 className=" mb-2 w-20">Parent link</h3>
-                <h3 className=" mb-2  w-20">Status</h3>
+          {/* Interactive Command Display */}
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2 bg-black p-3.5 rounded-lg border border-zinc-800 overflow-x-auto text-emerald-400">
+              <span className="text-zinc-500 select-none">user@localhost:~$</span>
+              <span className="text-zinc-100 font-bold whitespace-nowrap">{command}</span>
+              <span className="w-2 h-4 bg-emerald-400 animate-pulse inline-block shrink-0"></span>
+            </div>
+
+            {/* Terminal Parameter Inputs */}
+            <div className="pt-3 border-t border-zinc-900 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-sans">
+              <div>
+                <label className="block text-zinc-400 text-[11px] mb-1 font-mono font-medium">Target URL</label>
+                <input
+                  type="text"
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full bg-zinc-900 text-zinc-100 border border-zinc-800 rounded px-2.5 py-1.5 font-mono text-xs focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-zinc-400 text-[11px] mb-1 font-mono font-medium">--delay (ms)</label>
+                <input
+                  type="number"
+                  value={delay}
+                  onChange={(e) => setDelay(e.target.value)}
+                  placeholder="200"
+                  className="w-full bg-zinc-900 text-zinc-100 border border-zinc-800 rounded px-2.5 py-1.5 font-mono text-xs focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex items-center gap-4 pt-3 sm:pt-4">
+                <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={puppeteer}
+                    onChange={(e) => setPuppeteer(e.target.checked)}
+                    className="accent-emerald-500 rounded cursor-pointer"
+                  />
+                  <span className="text-xs font-mono">--puppeteer</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={jsonOutput}
+                    onChange={(e) => setJsonOutput(e.target.checked)}
+                    className="accent-emerald-500 rounded cursor-pointer"
+                  />
+                  <span className="text-xs font-mono">--json</span>
+                </label>
               </div>
             </div>
-            <ul className="max-h-[220px] overflow-scroll flex flex-col gap-3">
-              {results.allPages.map((url) => (
-                <li
-                  key={url.url}
-                  className="flex gap-3 justify-between items-center px-5 border-b  border-gray-200 hover:bg-gray-100 transition-all  py-2.5"
-                >
-                  <a
-                    target="_blank"
-                    className="hover:underline flex gap-3 items-center"
-                    href={url.url}
-                  >
-                    {url.url}
-                  </a>
-                  {results.notFound.includes(url.url) ? (
-                    <div className="flex gap-4 justify-center items-center">
-                      <a
-                        target="_blank"
-                        href={url.parentUrl}
-                        className="group relative flex justify-center items-center"
-                      >
-                        <MapPin className=" size-6 text-muted-foreground cursor-pointer" />
-                        <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
-                          The parent URL (source of the link):{url.parentUrl}.
-                          Click the icon to redirect.
-                        </div>
-                      </a>
-                      <div className=" rounded h-8    w-20 bg-red-50 text-red-700  font-semibold   py-2 px-4  text-xs  aspect-square flex justify-center items-center">
-                        Broken(404)
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-4 justify-center items-center relative">
-                      <a
-                        target="_blank"
-                        href={url.parentUrl}
-                        className="group relative flex justify-center items-center "
-                      >
-                        <MapPin className=" size-6 text-muted-foreground cursor-pointer" />
-                        <div className="absolute text-sm w-[400px] -top-2 right-8 bg-gray-200 rounded p-1 hidden group-hover:block">
-                          The parent URL (source of the link):{url.parentUrl}.
-                          Click the icon to redirect.
-                        </div>
-                      </a>
-
-                      <div className="text-xs  h-8 bg-green-50 text-green-700  font-semibold   w-20   py-2 px-4 rounded aspect-square flex justify-center items-center">
-                        Valid(200)
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-      
-      {/* Links Section */}
-      <div className="flex flex-col items-center gap-3 mt-2">
-        <Link
-          href="/stories/integrate-with-slack"
-          className="cursor-pointer underline z-30 relative text-gray-700 hover:text-black"
-        >
-          Integrate OpenCrawler to slack and get notified when broken links are found.
-        </Link>
-        <Link
-          href="/stories"
-          className="cursor-pointer underline z-30 relative text-gray-700 hover:text-black"
-        >
-          Read our blog for tips on SEO, productivity, and developer tools →
-        </Link>
-      </div>
-
-      {/* Disclaimer for Large Websites */}
-      <div className="mt-6 mb-8 max-w-2xl mx-auto p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-            <span className="text-amber-600 text-sm font-bold">!</span>
-          </div>
-          <div>
-            <p className="text-sm text-amber-800 font-medium mb-1">
-              Large Website? Run it locally
-            </p>
-            <p className="text-xs text-amber-700 leading-relaxed">
-              For websites with thousands of pages, the browser may run out of resources. 
-              Clone our GitHub repositories and run the crawler locally for better performance:
-            </p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <a
-                href="https://github.com/naeemudheenp/opencrawler"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
-              >
-                <Github className="h-3 w-3" />
-                opencrawler
-              </a>
-              <a
-                href="https://github.com/naeemudheenp/opencrawler-frontend"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
-              >
-                <Github className="h-3 w-3" />
-                opencrawler-frontend
-              </a>
-              <a
-                href="https://github.com/naeemudheenp/opencrawler-backend"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded transition-colors"
-              >
-                <Github className="h-3 w-3" />
-                opencrawler-backend
-              </a>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* <TechStackShowcase /> */}
-    </section>
+      {/* Clean Minimal Terminal Footer */}
+      <footer className="pt-8 text-center text-xs text-zinc-500 font-mono">
+        Created by Naeemudheen P
+      </footer>
+    </div>
   );
 }
+
